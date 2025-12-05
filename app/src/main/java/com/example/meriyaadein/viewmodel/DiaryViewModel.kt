@@ -20,7 +20,7 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
     
     val allEntries: StateFlow<List<DiaryEntry>>
     val favoriteEntries: StateFlow<List<DiaryEntry>>
-    val entryDates: StateFlow<List<Long>>
+    val todayEntry: StateFlow<DiaryEntry?>
     
     private val _selectedEntry = MutableStateFlow<DiaryEntry?>(null)
     val selectedEntry: StateFlow<DiaryEntry?> = _selectedEntry.asStateFlow()
@@ -40,8 +40,13 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
         favoriteEntries = repository.favoriteEntries
             .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
         
-        entryDates = repository.getAllEntryDates()
-            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        // Get today's entry only
+        val todayStart = getTodayStartMillis()
+        val todayEnd = todayStart + 24 * 60 * 60 * 1000
+        
+        todayEntry = repository.getEntriesByDateRange(todayStart, todayEnd)
+            .map { entries -> entries.firstOrNull() }
+            .stateIn(viewModelScope, SharingStarted.Lazily, null)
         
         searchResults = _searchQuery
             .debounce(300)
@@ -53,6 +58,16 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
             .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    }
+    
+    private fun getTodayStartMillis(): Long {
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        return calendar.timeInMillis
     }
     
     fun saveEntry(title: String, content: String, date: Long, mood: Mood, entryId: Long? = null) {
@@ -78,6 +93,15 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
                         mood = mood
                     )
                 )
+            }
+        }
+    }
+    
+    fun updateTodayMood(mood: Mood) {
+        viewModelScope.launch {
+            val entry = todayEntry.value
+            if (entry != null) {
+                repository.updateEntry(entry.copy(mood = mood))
             }
         }
     }

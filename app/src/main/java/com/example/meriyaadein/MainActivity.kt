@@ -38,7 +38,7 @@ fun DiaryApp() {
     val currentRoute = navBackStackEntry?.destination?.route ?: Routes.HOME
     
     // Routes where bottom nav should be visible
-    val bottomNavRoutes = listOf(Routes.HOME, Routes.CALENDAR, Routes.FAVORITES, Routes.SETTINGS)
+    val bottomNavRoutes = listOf(Routes.HOME, Routes.HISTORY, Routes.FAVORITES, Routes.SETTINGS)
     val showBottomNav = currentRoute in bottomNavRoutes
     
     Scaffold(

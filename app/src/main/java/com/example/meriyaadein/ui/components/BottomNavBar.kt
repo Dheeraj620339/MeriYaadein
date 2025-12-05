@@ -24,11 +24,11 @@ sealed class BottomNavItem(
         unselectedIcon = Icons.Outlined.Home
     )
     
-    data object Calendar : BottomNavItem(
-        route = "calendar",
-        title = "Calendar",
-        selectedIcon = Icons.Filled.CalendarMonth,
-        unselectedIcon = Icons.Outlined.CalendarMonth
+    data object History : BottomNavItem(
+        route = "history",
+        title = "History",
+        selectedIcon = Icons.Filled.History,
+        unselectedIcon = Icons.Outlined.History
     )
     
     data object Favorites : BottomNavItem(
@@ -56,7 +56,7 @@ fun BottomNavBar(
 ) {
     val items = listOf(
         BottomNavItem.Home,
-        BottomNavItem.Calendar,
+        BottomNavItem.History,
         BottomNavItem.Favorites,
         BottomNavItem.Settings
     )
@@ -91,3 +91,4 @@ fun BottomNavBar(
         }
     }
 }
+

@@ -16,7 +16,7 @@ import com.example.meriyaadein.viewmodel.DiaryViewModel
  */
 object Routes {
     const val HOME = "home"
-    const val CALENDAR = "calendar"
+    const val HISTORY = "history"
     const val FAVORITES = "favorites"
     const val SETTINGS = "settings"
     const val ADD_ENTRY = "add_entry"
@@ -36,20 +36,40 @@ fun DiaryNavHost(
 ) {
     val entries by viewModel.allEntries.collectAsState()
     val favoriteEntries by viewModel.favoriteEntries.collectAsState()
-    val entryDates by viewModel.entryDates.collectAsState()
+    val todayEntry by viewModel.todayEntry.collectAsState()
     val selectedEntry by viewModel.selectedEntry.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
-    
-    var selectedCalendarDate by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    val entriesForSelectedDate by viewModel.getEntriesForDate(selectedCalendarDate).collectAsState(initial = emptyList())
     
     NavHost(
         navController = navController,
         startDestination = Routes.HOME,
         modifier = modifier
     ) {
+        // Home - shows today's entry only
         composable(Routes.HOME) {
             HomeScreen(
+                todayEntry = todayEntry,
+                onWriteClick = {
+                    navController.navigate(Routes.ADD_ENTRY)
+                },
+                onEditClick = { entry ->
+                    viewModel.loadEntryById(entry.id)
+                    navController.navigate(Routes.editEntry(entry.id))
+                },
+                onMoodSelected = { mood ->
+                    // Update today's entry mood or navigate to add
+                    if (todayEntry != null) {
+                        viewModel.updateTodayMood(mood)
+                    } else {
+                        navController.navigate(Routes.ADD_ENTRY)
+                    }
+                }
+            )
+        }
+        
+        // History - shows all past entries
+        composable(Routes.HISTORY) {
+            HistoryScreen(
                 entries = entries,
                 onEntryClick = { entry ->
                     viewModel.loadEntryById(entry.id)
@@ -58,28 +78,8 @@ fun DiaryNavHost(
                 onFavoriteClick = { entry ->
                     viewModel.toggleFavorite(entry)
                 },
-                onAddClick = {
-                    navController.navigate(Routes.ADD_ENTRY)
-                },
                 searchQuery = searchQuery,
                 onSearchQueryChange = { viewModel.updateSearchQuery(it) }
-            )
-        }
-        
-        composable(Routes.CALENDAR) {
-            CalendarScreen(
-                entryDates = entryDates,
-                entriesForSelectedDate = entriesForSelectedDate,
-                onDateSelected = { date ->
-                    selectedCalendarDate = date
-                },
-                onEntryClick = { entry ->
-                    viewModel.loadEntryById(entry.id)
-                    navController.navigate(Routes.editEntry(entry.id))
-                },
-                onFavoriteClick = { entry ->
-                    viewModel.toggleFavorite(entry)
-                }
             )
         }
         
