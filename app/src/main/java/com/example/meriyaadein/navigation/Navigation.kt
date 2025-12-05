@@ -72,7 +72,12 @@ fun DiaryNavHost(
                     // Just update mood in ViewModel (for theme persistence)
                     // Does NOT navigate anywhere
                     viewModel.updateTodayMood(mood)
-                }
+                },
+                onProfileClick = {
+                    // Navigate to settings/profile
+                    navController.navigate(Routes.SETTINGS)
+                },
+                userName = "Dheeraj"  // Can be made dynamic from settings later
             )
         }
         
