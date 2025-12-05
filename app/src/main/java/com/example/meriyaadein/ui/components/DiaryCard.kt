@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -40,23 +41,30 @@ fun DiaryCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(20.dp),
+                ambientColor = DeepRose.copy(alpha = 0.2f),
+                spotColor = DeepRose.copy(alpha = 0.2f)
+            )
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = CardPink
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 4.dp
+            defaultElevation = 0.dp
         )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    Brush.verticalGradient(
+                    Brush.linearGradient(
                         colors = listOf(
-                            Color.White,
-                            BlushMist.copy(alpha = 0.3f)
+                            CreamWhite,
+                            BlushRose.copy(alpha = 0.3f),
+                            SoftLavender.copy(alpha = 0.2f)
                         )
                     )
                 )
@@ -67,17 +75,24 @@ fun DiaryCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Mood emoji
+                // Mood emoji with pink background
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
-                        .background(DustyRose.copy(alpha = 0.4f)),
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(
+                                    BlushRose,
+                                    GradientMid.copy(alpha = 0.5f)
+                                )
+                            )
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = entry.mood.emoji,
-                        fontSize = 22.sp
+                        fontSize = 24.sp
                     )
                 }
                 
@@ -86,7 +101,7 @@ fun DiaryCard(
                     Icon(
                         imageVector = if (entry.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = if (entry.isFavorite) "Remove from favorites" else "Add to favorites",
-                        tint = if (entry.isFavorite) VelvetBurgundy else CharcoalSlate.copy(alpha = 0.5f)
+                        tint = if (entry.isFavorite) DeepRose else CharcoalSlate.copy(alpha = 0.4f)
                     )
                 }
             }
@@ -109,7 +124,7 @@ fun DiaryCard(
             Text(
                 text = entry.content,
                 style = MaterialTheme.typography.bodyMedium,
-                color = CharcoalSlate.copy(alpha = 0.7f),
+                color = CharcoalSlate.copy(alpha = 0.65f),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -124,14 +139,16 @@ fun DiaryCard(
                 Text(
                     text = dateFormat.format(Date(entry.date)),
                     style = MaterialTheme.typography.labelSmall,
-                    color = AntiqueGold
+                    fontWeight = FontWeight.Medium,
+                    color = HoneyGold
                 )
                 Text(
                     text = timeFormat.format(Date(entry.createdAt)),
                     style = MaterialTheme.typography.labelSmall,
-                    color = CharcoalSlate.copy(alpha = 0.5f)
+                    color = CharcoalSlate.copy(alpha = 0.4f)
                 )
             }
         }
     }
 }
+

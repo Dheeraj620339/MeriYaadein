@@ -62,8 +62,8 @@ fun BottomNavBar(
     )
     
     NavigationBar(
-        containerColor = CreamPaper,
-        contentColor = VelvetBurgundy
+        containerColor = CardPink,
+        contentColor = DeepRose
     ) {
         items.forEach { item ->
             val isSelected = currentRoute == item.route
@@ -81,11 +81,11 @@ fun BottomNavBar(
                 selected = isSelected,
                 onClick = { onItemClick(item) },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = VelvetBurgundy,
-                    selectedTextColor = VelvetBurgundy,
-                    unselectedIconColor = CharcoalSlate.copy(alpha = 0.6f),
-                    unselectedTextColor = CharcoalSlate.copy(alpha = 0.6f),
-                    indicatorColor = DustyRose.copy(alpha = 0.3f)
+                    selectedIconColor = DeepRose,
+                    selectedTextColor = DeepRose,
+                    unselectedIconColor = CharcoalSlate.copy(alpha = 0.5f),
+                    unselectedTextColor = CharcoalSlate.copy(alpha = 0.5f),
+                    indicatorColor = BlushRose.copy(alpha = 0.5f)
                 )
             )
         }
