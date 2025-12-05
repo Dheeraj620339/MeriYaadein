@@ -10,45 +10,46 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = BlushRose,
-    onPrimary = DarkDeepRose,
-    primaryContainer = DarkDeepRose,
-    onPrimaryContainer = BlushRose,
-    secondary = HoneyGold,
-    onSecondary = DarkDeepRose,
-    secondaryContainer = DarkAntiqueGold,
-    onSecondaryContainer = DarkDeepRose,
-    tertiary = SoftLavender,
-    onTertiary = DarkDeepRose,
-    background = DarkCreamPaper,
-    onBackground = BlushRose,
-    surface = DarkBlushMist,
-    onSurface = BlushRose
+    primary = LavenderMid,
+    onPrimary = DarkDeepPurple,
+    primaryContainer = DeepPurple,
+    onPrimaryContainer = LavenderLight,
+    secondary = TealAccent,
+    onSecondary = DarkDeepPurple,
+    secondaryContainer = DarkCard,
+    onSecondaryContainer = TealAccent,
+    tertiary = HoneyGold,
+    onTertiary = DarkDeepPurple,
+    background = DarkDeepPurple,
+    onBackground = CreamWhite,
+    surface = DarkSurface,
+    onSurface = CreamWhite,
+    surfaceVariant = DarkCard,
+    onSurfaceVariant = LavenderLight
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = DeepRose,
+    primary = DeepPurple,
     onPrimary = CreamWhite,
-    primaryContainer = BlushRose,
-    onPrimaryContainer = DeepRose,
-    secondary = HoneyGold,
-    onSecondary = VelvetBurgundy,
-    secondaryContainer = BlushMist,
-    onSecondaryContainer = DeepRose,
-    tertiary = SoftLavender,
-    onTertiary = DeepRose,
-    background = RosePetal,
+    primaryContainer = LavenderLight,
+    onPrimaryContainer = DeepPurple,
+    secondary = TealAccent,
+    onSecondary = CharcoalSlate,
+    secondaryContainer = TealGradientStart,
+    onSecondaryContainer = CharcoalSlate,
+    tertiary = HoneyGold,
+    onTertiary = CharcoalSlate,
+    background = GradientStart,
     onBackground = CharcoalSlate,
-    surface = CardPink,
+    surface = CardLavender,
     onSurface = CharcoalSlate,
-    surfaceVariant = BlushMist,
+    surfaceVariant = LavenderLight,
     onSurfaceVariant = CharcoalSlate
 )
 

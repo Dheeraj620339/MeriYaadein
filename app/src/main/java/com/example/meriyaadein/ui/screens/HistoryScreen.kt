@@ -1,5 +1,7 @@
 package com.example.meriyaadein.ui.screens
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,7 +24,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * History screen - shows all past entries (timeline)
+ * History screen - shows all past entries with premium design
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,12 +37,15 @@ fun HistoryScreen(
     modifier: Modifier = Modifier
 ) {
     var isSearchVisible by remember { mutableStateOf(false) }
+    var isVisible by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(Unit) { isVisible = true }
     
     val gradientBackground = Brush.verticalGradient(
         colors = listOf(
             GradientStart,
-            GradientMid.copy(alpha = 0.5f),
-            GradientEnd.copy(alpha = 0.3f)
+            GradientMid,
+            GradientEnd.copy(alpha = 0.7f)
         )
     )
     
@@ -53,7 +58,30 @@ fun HistoryScreen(
             topBar = {
                 TopAppBar(
                     title = {
-                        if (isSearchVisible) {
+                        AnimatedVisibility(
+                            visible = !isSearchVisible,
+                            enter = fadeIn(),
+                            exit = fadeOut()
+                        ) {
+                            Column {
+                                Text(
+                                    text = "📜 History",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = DeepPurple
+                                )
+                                Text(
+                                    text = "Puraani yaadein",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = GreyText
+                                )
+                            }
+                        }
+                        AnimatedVisibility(
+                            visible = isSearchVisible,
+                            enter = fadeIn() + expandHorizontally(),
+                            exit = fadeOut() + shrinkHorizontally()
+                        ) {
                             OutlinedTextField(
                                 value = searchQuery,
                                 onValueChange = onSearchQueryChange,
@@ -61,24 +89,10 @@ fun HistoryScreen(
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = DeepRose,
-                                    cursorColor = DeepRose
+                                    focusedBorderColor = DeepPurple,
+                                    cursorColor = DeepPurple
                                 )
                             )
-                        } else {
-                            Column {
-                                Text(
-                                    text = "📜 History",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = DeepRose
-                                )
-                                Text(
-                                    text = "Puraani yaadein",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = CharcoalSlate.copy(alpha = 0.6f)
-                                )
-                            }
                         }
                     },
                     actions = {
@@ -86,56 +100,61 @@ fun HistoryScreen(
                             Icon(
                                 Icons.Default.Search,
                                 contentDescription = "Search",
-                                tint = DeepRose
+                                tint = DeepPurple
                             )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = GradientStart.copy(alpha = 0.95f)
+                        containerColor = GlassWhite
                     )
                 )
             },
             containerColor = androidx.compose.ui.graphics.Color.Transparent
         ) { paddingValues ->
-            if (entries.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    EmptyState(
-                        title = "Koi puraani yaad nahi",
-                        subtitle = "Jab tum likhoge, sab yahan dikhega ✨"
-                    )
-                }
-            } else {
-                val groupedEntries = remember(entries) {
-                    entries.groupBy { entry ->
-                        val sdf = SimpleDateFormat("dd MMMM, yyyy", Locale.getDefault())
-                        sdf.format(Date(entry.date))
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn(animationSpec = tween(500))
+            ) {
+                if (entries.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        EmptyState(
+                            title = "Koi puraani yaad nahi",
+                            subtitle = "Jab tum likhoge, sab yahan dikhega ✨"
+                        )
                     }
-                }
-                
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(vertical = 16.dp)
-                ) {
-                    groupedEntries.forEach { (date, entriesForDate) ->
-                        item {
-                            DateHeader(dateText = date)
+                } else {
+                    val groupedEntries = remember(entries) {
+                        entries.groupBy { entry ->
+                            val sdf = SimpleDateFormat("dd MMMM, yyyy", Locale.getDefault())
+                            sdf.format(Date(entry.date))
                         }
-                        
-                        items(entriesForDate, key = { it.id }) { entry ->
-                            DiaryCard(
-                                entry = entry,
-                                onClick = { onEntryClick(entry) },
-                                onFavoriteClick = { onFavoriteClick(entry) }
-                            )
+                    }
+                    
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(vertical = 16.dp)
+                    ) {
+                        groupedEntries.forEach { (date, entriesForDate) ->
+                            item {
+                                DateHeader(dateText = date)
+                            }
+                            
+                            items(entriesForDate, key = { it.id }) { entry ->
+                                DiaryCard(
+                                    entry = entry,
+                                    onClick = { onEntryClick(entry) },
+                                    onFavoriteClick = { onFavoriteClick(entry) }
+                                )
+                            }
                         }
                     }
                 }
