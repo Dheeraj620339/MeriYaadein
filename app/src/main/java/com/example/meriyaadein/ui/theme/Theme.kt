@@ -12,32 +12,44 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = DustyRose,
+    onPrimary = DarkVelvetBurgundy,
+    primaryContainer = DarkVelvetBurgundy,
+    onPrimaryContainer = DustyRose,
+    secondary = AntiqueGold,
+    onSecondary = DarkVelvetBurgundy,
+    secondaryContainer = DarkAntiqueGold,
+    onSecondaryContainer = DarkVelvetBurgundy,
+    tertiary = BlushMist,
+    onTertiary = DarkVelvetBurgundy,
+    background = DarkCreamPaper,
+    onBackground = BlushMist,
+    surface = DarkBlushMist,
+    onSurface = BlushMist
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    primary = VelvetBurgundy,
+    onPrimary = CreamPaper,
+    primaryContainer = DustyRose,
+    onPrimaryContainer = VelvetBurgundy,
+    secondary = AntiqueGold,
+    onSecondary = VelvetBurgundy,
+    secondaryContainer = BlushMist,
+    onSecondaryContainer = VelvetBurgundy,
+    tertiary = DustyRose,
+    onTertiary = VelvetBurgundy,
+    background = CreamPaper,
+    onBackground = CharcoalSlate,
+    surface = BlushMist,
+    onSurface = CharcoalSlate
 )
 
 @Composable
 fun MeriYaadeinTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // Disable dynamic color to enforce brand identity
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
