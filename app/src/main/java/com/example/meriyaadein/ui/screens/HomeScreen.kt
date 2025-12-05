@@ -17,7 +17,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
@@ -34,18 +33,21 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Professional Home Screen with:
- * - Dynamic Smart Greeting
- * - Glassmorphism Cards
- * - Interactive Mood Selector
- * - AI-Smart Suggestions
- * - 2025 Premium Design
+ * Professional Home Screen
+ * 
+ * ACTIONS:
+ * - Mood click → only select mood + change theme (NO write open)
+ * - "Likhna Shuru Karo" → primary action, opens write screen
+ * - AI suggestion click → opens write with pre-filled question
+ * - FAB (+) → adds custom question (no write open)
+ * - UI theme changes based on selected mood
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     todayEntry: DiaryEntry?,
     onWriteClick: () -> Unit,
+    onWriteWithPrompt: (String) -> Unit,  // New: write with pre-filled prompt
     onEditClick: (DiaryEntry) -> Unit,
     onMoodSelected: (Mood) -> Unit,
     modifier: Modifier = Modifier
@@ -55,14 +57,11 @@ fun HomeScreen(
         SimpleDateFormat("EEEE, dd MMMM yyyy", Locale.getDefault()).format(Date()) 
     }
     
-    // Premium dual gradient background
-    val gradientBackground = Brush.verticalGradient(
-        colors = listOf(
-            GradientStart,
-            GradientMid,
-            GradientEnd.copy(alpha = 0.7f)
-        )
-    )
+    // Selected mood for theme change
+    var selectedMood by remember { mutableStateOf(todayEntry?.mood ?: Mood.NEUTRAL) }
+    
+    // Get mood-based gradient
+    val moodGradient = getMoodGradient(selectedMood)
     
     // Animation states
     var isVisible by remember { mutableStateOf(false) }
@@ -71,7 +70,7 @@ fun HomeScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(gradientBackground)
+            .background(moodGradient)
     ) {
         Column(
             modifier = Modifier
@@ -89,7 +88,7 @@ fun HomeScreen(
                     animationSpec = tween(600)
                 )
             ) {
-                SmartGreetingSection(currentHour = currentHour)
+                SmartGreetingSection(currentHour = currentHour, selectedMood = selectedMood)
             }
             
             Spacer(modifier = Modifier.height(8.dp))
@@ -112,7 +111,7 @@ fun HomeScreen(
             ) {
                 GlassmorphismDailyCard(
                     entry = todayEntry,
-                    onWriteClick = onWriteClick,
+                    onWriteClick = onWriteClick,  // Primary action
                     onEditClick = { todayEntry?.let { onEditClick(it) } }
                 )
             }
@@ -120,30 +119,40 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(28.dp))
             
             // ========== INTERACTIVE MOOD SELECTOR ==========
+            // Mood click → only theme change, NO write screen
             AnimatedVisibility(
                 visible = isVisible,
                 enter = fadeIn(animationSpec = tween(600, delayMillis = 600))
             ) {
                 InteractiveMoodSelector(
-                    selectedMood = todayEntry?.mood,
-                    onMoodSelected = onMoodSelected
+                    selectedMood = selectedMood,
+                    onMoodSelected = { mood ->
+                        selectedMood = mood
+                        onMoodSelected(mood)  // Just update mood, theme changes automatically
+                    }
                 )
             }
             
             Spacer(modifier = Modifier.height(28.dp))
             
             // ========== AI-SMART SUGGESTIONS ==========
+            // Click → opens write with pre-filled question
             AnimatedVisibility(
                 visible = isVisible,
                 enter = fadeIn(animationSpec = tween(600, delayMillis = 800))
             ) {
-                AiSmartSuggestions()
+                AiSmartSuggestions(
+                    onSuggestionClick = { prompt ->
+                        onWriteWithPrompt(prompt)  // Open write with pre-filled prompt
+                    }
+                )
             }
             
             Spacer(modifier = Modifier.height(100.dp))
         }
         
-        // ========== FLOATING ACTION BUTTON 2.0 ==========
+        // ========== FLOATING ACTION BUTTON ==========
+        // Just for quick access to write (same as primary button)
         PremiumFloatingActionButton(
             onClick = onWriteClick,
             modifier = Modifier
@@ -153,8 +162,59 @@ fun HomeScreen(
     }
 }
 
+/**
+ * Get gradient based on selected mood
+ */
 @Composable
-private fun SmartGreetingSection(currentHour: Int) {
+private fun getMoodGradient(mood: Mood): Brush {
+    return when (mood) {
+        Mood.HAPPY, Mood.EXCITED -> Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFFFFF8E1),  // Warm yellow
+                Color(0xFFFFE082),
+                Color(0xFFFFD54F).copy(alpha = 0.6f)
+            )
+        )
+        Mood.SAD, Mood.ANXIOUS -> Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFFE3F2FD),  // Cool blue
+                Color(0xFF90CAF9),
+                Color(0xFF64B5F6).copy(alpha = 0.6f)
+            )
+        )
+        Mood.ROMANTIC, Mood.GRATEFUL -> Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFFFCE4EC),  // Soft pink
+                Color(0xFFF8BBD9),
+                Color(0xFFF48FB1).copy(alpha = 0.6f)
+            )
+        )
+        Mood.PEACEFUL -> Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFFE8F5E9),  // Calm green
+                Color(0xFFA5D6A7),
+                Color(0xFF81C784).copy(alpha = 0.6f)
+            )
+        )
+        Mood.ANGRY -> Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFFFFEBEE),  // Alert red
+                Color(0xFFFFCDD2),
+                Color(0xFFEF9A9A).copy(alpha = 0.6f)
+            )
+        )
+        else -> Brush.verticalGradient(
+            colors = listOf(
+                GradientStart,
+                GradientMid,
+                GradientEnd.copy(alpha = 0.7f)
+            )
+        )
+    }
+}
+
+@Composable
+private fun SmartGreetingSection(currentHour: Int, selectedMood: Mood) {
     val (greeting, emoji, subtext) = when {
         currentHour in 5..11 -> Triple(
             "Good Morning, Dheeraj!",
@@ -354,7 +414,7 @@ private fun GlassmorphismDailyCard(
                     )
                 }
             } else {
-                // Empty state - prompt to write
+                // Empty state - PRIMARY ACTION: "Likhna Shuru Karo"
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -384,6 +444,7 @@ private fun GlassmorphismDailyCard(
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     
+                    // PRIMARY BUTTON - only this opens write screen
                     Button(
                         onClick = onWriteClick,
                         colors = ButtonDefaults.buttonColors(
@@ -408,7 +469,7 @@ private fun GlassmorphismDailyCard(
 
 @Composable
 private fun InteractiveMoodSelector(
-    selectedMood: Mood?,
+    selectedMood: Mood,
     onMoodSelected: (Mood) -> Unit
 ) {
     val moods = listOf(
@@ -422,7 +483,7 @@ private fun InteractiveMoodSelector(
     
     Column {
         Text(
-            text = "🎭 Aaj ka Mood",
+            text = "🎭 Aaj ka Mood (Theme change hoga)",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             color = DeepPurple
@@ -438,7 +499,7 @@ private fun InteractiveMoodSelector(
                 InteractiveMoodChip(
                     mood = mood,
                     isSelected = selectedMood == mood,
-                    onClick = { onMoodSelected(mood) }
+                    onClick = { onMoodSelected(mood) }  // Just changes mood + theme
                 )
             }
         }
@@ -522,40 +583,69 @@ private fun InteractiveMoodChip(
 }
 
 @Composable
-private fun AiSmartSuggestions() {
+private fun AiSmartSuggestions(
+    onSuggestionClick: (String) -> Unit  // Click opens write with pre-filled prompt
+) {
     val suggestions = listOf(
-        "💭 Kal ke goals kitne complete hue?",
-        "🌟 Kis baat ne aaj proud feel karaya?",
-        "💕 Aaj kisi ne accha behave kiya? Mention karo.",
-        "📸 Koi special moment capture karna chahte ho?"
+        "Kal ke goals kitne complete hue?",
+        "Kis baat ne aaj proud feel karaya?",
+        "Aaj kisi ne accha behave kiya? Mention karo.",
+        "Koi special moment capture karna chahte ho?"
     )
     
     Column {
-        Text(
-            text = "✨ AI Suggestions",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Medium,
-            color = GreyText
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "✨ AI Suggestions",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium,
+                color = GreyText
+            )
+            Text(
+                text = "Tap to write",
+                style = MaterialTheme.typography.labelSmall,
+                color = DeepPurple.copy(alpha = 0.7f)
+            )
+        }
         
         Spacer(modifier = Modifier.height(12.dp))
         
-        suggestions.forEach { suggestion ->
+        suggestions.forEachIndexed { index, suggestion ->
+            val emoji = listOf("💭", "🌟", "💕", "📸")[index]
+            
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = 4.dp)
+                    .clickable { onSuggestionClick(suggestion) },  // Opens write with this prompt
                 colors = CardDefaults.cardColors(
                     containerColor = GlassWhite
                 ),
                 shape = RoundedCornerShape(14.dp)
             ) {
-                Text(
-                    text = suggestion,
+                Row(
                     modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = CharcoalSlate.copy(alpha = 0.8f)
-                )
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = emoji, fontSize = 18.sp)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = suggestion,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = CharcoalSlate.copy(alpha = 0.8f),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        Icons.Default.ArrowForward,
+                        contentDescription = "Write",
+                        tint = DeepPurple.copy(alpha = 0.5f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }
@@ -566,7 +656,6 @@ private fun PremiumFloatingActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // 3D shadow effect
     val elevation by animateFloatAsState(
         targetValue = 12f,
         animationSpec = spring(),

@@ -10,6 +10,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.meriyaadein.ui.screens.*
 import com.example.meriyaadein.viewmodel.DiaryViewModel
+import java.net.URLDecoder
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 /**
  * Navigation routes
@@ -20,9 +23,14 @@ object Routes {
     const val FAVORITES = "favorites"
     const val SETTINGS = "settings"
     const val ADD_ENTRY = "add_entry"
+    const val ADD_ENTRY_WITH_PROMPT = "add_entry_prompt/{prompt}"
     const val EDIT_ENTRY = "edit_entry/{entryId}"
     
     fun editEntry(entryId: Long) = "edit_entry/$entryId"
+    fun addEntryWithPrompt(prompt: String): String {
+        val encoded = URLEncoder.encode(prompt, StandardCharsets.UTF_8.toString())
+        return "add_entry_prompt/$encoded"
+    }
 }
 
 /**
@@ -52,17 +60,18 @@ fun DiaryNavHost(
                 onWriteClick = {
                     navController.navigate(Routes.ADD_ENTRY)
                 },
+                onWriteWithPrompt = { prompt ->
+                    // Navigate with pre-filled prompt
+                    navController.navigate(Routes.addEntryWithPrompt(prompt))
+                },
                 onEditClick = { entry ->
                     viewModel.loadEntryById(entry.id)
                     navController.navigate(Routes.editEntry(entry.id))
                 },
                 onMoodSelected = { mood ->
-                    // Update today's entry mood or navigate to add
-                    if (todayEntry != null) {
-                        viewModel.updateTodayMood(mood)
-                    } else {
-                        navController.navigate(Routes.ADD_ENTRY)
-                    }
+                    // Just update mood in ViewModel (for theme persistence)
+                    // Does NOT navigate anywhere
+                    viewModel.updateTodayMood(mood)
                 }
             )
         }
@@ -100,9 +109,31 @@ fun DiaryNavHost(
             SettingsScreen()
         }
         
+        // Add entry without prompt
         composable(Routes.ADD_ENTRY) {
             AddEditScreen(
                 existingEntry = null,
+                preFilledPrompt = null,
+                onSave = { title, content, date, mood ->
+                    viewModel.saveEntry(title, content, date, mood)
+                    navController.popBackStack()
+                },
+                onDelete = null,
+                onBack = { navController.popBackStack() }
+            )
+        }
+        
+        // Add entry WITH pre-filled prompt (from AI suggestions)
+        composable(
+            route = Routes.ADD_ENTRY_WITH_PROMPT,
+            arguments = listOf(navArgument("prompt") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val encodedPrompt = backStackEntry.arguments?.getString("prompt") ?: ""
+            val prompt = URLDecoder.decode(encodedPrompt, StandardCharsets.UTF_8.toString())
+            
+            AddEditScreen(
+                existingEntry = null,
+                preFilledPrompt = prompt,  // Pass the prompt to pre-fill
                 onSave = { title, content, date, mood ->
                     viewModel.saveEntry(title, content, date, mood)
                     navController.popBackStack()
@@ -124,6 +155,7 @@ fun DiaryNavHost(
             
             AddEditScreen(
                 existingEntry = selectedEntry,
+                preFilledPrompt = null,
                 onSave = { title, content, date, mood ->
                     viewModel.saveEntry(title, content, date, mood, entryId)
                     navController.popBackStack()
