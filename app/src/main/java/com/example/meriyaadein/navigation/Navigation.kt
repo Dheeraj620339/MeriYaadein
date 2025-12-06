@@ -22,6 +22,7 @@ object Routes {
     const val HISTORY = "history"
     const val FAVORITES = "favorites"
     const val SETTINGS = "settings"
+    const val PROFILE = "profile"
     const val ADD_ENTRY = "add_entry"
     const val ADD_ENTRY_WITH_PROMPT = "add_entry_prompt/{prompt}"
     const val EDIT_ENTRY = "edit_entry/{entryId}"
@@ -47,6 +48,10 @@ fun DiaryNavHost(
     val todayEntry by viewModel.todayEntry.collectAsState()
     val selectedEntry by viewModel.selectedEntry.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    
+    // User Preferences
+    val userName by viewModel.userName.collectAsState()
+    val accentColor by viewModel.accentColor.collectAsState()
     
     NavHost(
         navController = navController,
@@ -74,10 +79,11 @@ fun DiaryNavHost(
                     viewModel.updateTodayMood(mood)
                 },
                 onProfileClick = {
-                    // Navigate to settings/profile
-                    navController.navigate(Routes.SETTINGS)
+                    // Navigate to profile screen
+                    navController.navigate(Routes.PROFILE)
                 },
-                userName = "Dheeraj"  // Can be made dynamic from settings later
+                userName = userName,
+                accentColor = accentColor
             )
         }
         
@@ -112,6 +118,21 @@ fun DiaryNavHost(
         
         composable(Routes.SETTINGS) {
             SettingsScreen()
+        }
+        
+        // Profile Screen
+        composable(Routes.PROFILE) {
+            ProfileScreen(
+                currentName = userName,
+                currentAccentColor = accentColor,
+                onSaveName = { name ->
+                    viewModel.saveUserName(name)
+                },
+                onSaveColor = { color ->
+                    viewModel.saveAccentColor(color)
+                },
+                onBack = { navController.popBackStack() }
+            )
         }
         
         // Add entry without prompt

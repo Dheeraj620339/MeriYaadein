@@ -53,7 +53,8 @@ fun HomeScreen(
     onEditClick: (DiaryEntry) -> Unit,
     onMoodSelected: (Mood) -> Unit,
     onProfileClick: () -> Unit = {},
-    userName: String = "Dheeraj",
+    userName: String = "Friend",
+    accentColor: String = "#5D1424",
     modifier: Modifier = Modifier
 ) {
     val currentHour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }

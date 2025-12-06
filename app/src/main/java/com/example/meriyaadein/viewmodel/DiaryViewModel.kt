@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.meriyaadein.data.local.DiaryDatabase
 import com.example.meriyaadein.data.local.DiaryEntry
 import com.example.meriyaadein.data.local.Mood
+import com.example.meriyaadein.data.local.UserPreferences
 import com.example.meriyaadein.data.repository.DiaryRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -17,10 +18,15 @@ import java.util.*
 class DiaryViewModel(application: Application) : AndroidViewModel(application) {
     
     private val repository: DiaryRepository
+    private val userPreferences: UserPreferences
     
     val allEntries: StateFlow<List<DiaryEntry>>
     val favoriteEntries: StateFlow<List<DiaryEntry>>
     val todayEntry: StateFlow<DiaryEntry?>
+    
+    // User Preferences
+    val userName: StateFlow<String>
+    val accentColor: StateFlow<String>
     
     private val _selectedEntry = MutableStateFlow<DiaryEntry?>(null)
     val selectedEntry: StateFlow<DiaryEntry?> = _selectedEntry.asStateFlow()
@@ -33,12 +39,20 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
     init {
         val database = DiaryDatabase.getDatabase(application)
         repository = DiaryRepository(database.diaryDao())
+        userPreferences = UserPreferences(application)
         
         allEntries = repository.allEntries
             .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
         
         favoriteEntries = repository.favoriteEntries
             .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        
+        // User Preferences flows
+        userName = userPreferences.userName
+            .stateIn(viewModelScope, SharingStarted.Eagerly, UserPreferences.DEFAULT_USER_NAME)
+        
+        accentColor = userPreferences.accentColor
+            .stateIn(viewModelScope, SharingStarted.Eagerly, UserPreferences.DEFAULT_ACCENT_COLOR)
         
         // Get today's entry only
         val todayStart = getTodayStartMillis()
@@ -145,5 +159,19 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
         val endOfDay = calendar.timeInMillis
         
         return repository.getEntriesByDateRange(startOfDay, endOfDay)
+    }
+    
+    // ==================== User Preferences ====================
+    
+    fun saveUserName(name: String) {
+        viewModelScope.launch {
+            userPreferences.saveUserName(name)
+        }
+    }
+    
+    fun saveAccentColor(color: String) {
+        viewModelScope.launch {
+            userPreferences.saveAccentColor(color)
+        }
     }
 }
