@@ -52,6 +52,12 @@ fun DiaryNavHost(
     // User Preferences
     val userName by viewModel.userName.collectAsState()
     val accentColor by viewModel.accentColor.collectAsState()
+
+    // Home Screen Dynamic Data
+    val currentSentence by viewModel.currentSentence.collectAsState()
+    val currentTime by viewModel.currentTime.collectAsState()
+    val currentMood by viewModel.currentMood.collectAsState()
+    val moodSuggestions by viewModel.moodSuggestions.collectAsState()
     
     NavHost(
         navController = navController,
@@ -62,6 +68,7 @@ fun DiaryNavHost(
         composable(Routes.HOME) {
             HomeScreen(
                 todayEntry = todayEntry,
+                recentEntries = entries, // Passing all entries for recent slider
                 onWriteClick = {
                     navController.navigate(Routes.ADD_ENTRY)
                 },
@@ -74,16 +81,17 @@ fun DiaryNavHost(
                     navController.navigate(Routes.editEntry(entry.id))
                 },
                 onMoodSelected = { mood ->
-                    // Just update mood in ViewModel (for theme persistence)
-                    // Does NOT navigate anywhere
-                    viewModel.updateTodayMood(mood)
+                    viewModel.updateCurrentMood(mood)
                 },
+                currentSentence = currentSentence,
+                currentTimeMillis = currentTime,
+                currentMood = currentMood,
+                moodSuggestions = moodSuggestions,
                 onProfileClick = {
                     // Navigate to profile screen
                     navController.navigate(Routes.PROFILE)
                 },
-                userName = userName,
-                accentColor = accentColor
+                userName = userName
             )
         }
         

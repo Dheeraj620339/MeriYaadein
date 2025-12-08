@@ -10,7 +10,9 @@ import com.example.meriyaadein.data.local.UserPreferences
 import com.example.meriyaadein.data.repository.DiaryRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import java.util.*
+import com.example.meriyaadein.data.HomeData
 
 /**
  * ViewModel for diary operations
@@ -36,6 +38,21 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
     
     val searchResults: StateFlow<List<DiaryEntry>>
     
+    // Rotating Sentences
+    private val _currentSentence = MutableStateFlow(HomeData.rotatingSentences.random())
+    val currentSentence: StateFlow<String> = _currentSentence.asStateFlow()
+
+    // Real-time Clock
+    private val _currentTime = MutableStateFlow(System.currentTimeMillis())
+    val currentTime: StateFlow<Long> = _currentTime.asStateFlow()
+
+    // Mood & Suggestions
+    private val _currentMood = MutableStateFlow(Mood.NEUTRAL)
+    val currentMood: StateFlow<Mood> = _currentMood.asStateFlow()
+
+    private val _moodSuggestions = MutableStateFlow(HomeData.getSuggestionsForMood(Mood.NEUTRAL))
+    val moodSuggestions: StateFlow<List<String>> = _moodSuggestions.asStateFlow()
+
     init {
         val database = DiaryDatabase.getDatabase(application)
         repository = DiaryRepository(database.diaryDao())
@@ -61,6 +78,15 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
         todayEntry = repository.getEntriesByDateRange(todayStart, todayEnd)
             .map { entries -> entries.firstOrNull() }
             .stateIn(viewModelScope, SharingStarted.Lazily, null)
+
+        // Initialize Mood based on Today's Entry
+        viewModelScope.launch {
+            todayEntry.collect { entry ->
+                val mood = entry?.mood ?: Mood.NEUTRAL
+                _currentMood.value = mood
+                _moodSuggestions.value = HomeData.getSuggestionsForMood(mood)
+            }
+        }
         
         searchResults = _searchQuery
             .debounce(300)
@@ -72,6 +98,42 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
             .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+        startTimers()
+    }
+    
+    private fun startTimers() {
+        // Rotate Sentence every 3 minutes (random 1-5 min is avg 3)
+        viewModelScope.launch {
+            while(true) {
+                delay(180_000) // 3 minutes
+                _currentSentence.value = HomeData.rotatingSentences.random()
+            }
+        }
+
+        // Update Time every minute
+        viewModelScope.launch {
+            while(true) {
+                _currentTime.value = System.currentTimeMillis()
+                // Wait until next minute starts to align roughly
+                val calendar = Calendar.getInstance()
+                val seconds = calendar.get(Calendar.SECOND)
+                delay((60 - seconds) * 1000L)
+            }
+        }
+
+        // Rotate suggestions every 2 minutes
+        viewModelScope.launch {
+            while(true) {
+                delay(120_000)
+                _moodSuggestions.value = HomeData.getSuggestionsForMood(_currentMood.value).shuffled()
+            }
+        }
+    }
+
+    fun updateCurrentMood(mood: Mood) {
+        _currentMood.value = mood
+        _moodSuggestions.value = HomeData.getSuggestionsForMood(mood)
     }
     
     private fun getTodayStartMillis(): Long {
@@ -108,7 +170,21 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 )
             }
+            // Update current mood if the saved entry is for today
+             if (isDateToday(date)) {
+                 updateCurrentMood(mood)
+             }
         }
+    }
+
+    private fun isDateToday(dateInMillis: Long): Boolean {
+        val calendar = Calendar.getInstance()
+        val todayYear = calendar.get(Calendar.YEAR)
+        val todayDay = calendar.get(Calendar.DAY_OF_YEAR)
+
+        calendar.timeInMillis = dateInMillis
+        return calendar.get(Calendar.YEAR) == todayYear && 
+               calendar.get(Calendar.DAY_OF_YEAR) == todayDay
     }
     
     fun updateTodayMood(mood: Mood) {
@@ -117,6 +193,7 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
             if (entry != null) {
                 repository.updateEntry(entry.copy(mood = mood))
             }
+            updateCurrentMood(mood)
         }
     }
     
