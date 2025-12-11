@@ -37,23 +37,44 @@ fun DiaryApp() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: Routes.HOME
     
+    // Hoist ViewModel to handle bottom nav actions
+    val viewModel: com.example.meriyaadein.viewmodel.DiaryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    
     // Routes where bottom nav should be visible
     val bottomNavRoutes = listOf(Routes.HOME, Routes.HISTORY, Routes.FAVORITES, Routes.SETTINGS)
-    val showBottomNav = currentRoute in bottomNavRoutes
+    val showBottomNav = currentRoute in bottomNavRoutes || currentRoute == Routes.HOME // Ensure Home always shows it
     
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
+            // We show bottom bar on main screens
+            // Note: Favorites is now a tab in History, so we might not need a route for it in bottom nav check if we removed it from nav bar
+            // But keeping it safe.
             if (showBottomNav) {
                 BottomNavBar(
                     currentRoute = currentRoute,
                     onItemClick = { item ->
-                        navController.navigate(item.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
+                        if (item.route == "write_memory") {
+                            // If on Home, Save. Else, go to Home.
+                            if (currentRoute == Routes.HOME) {
+                                viewModel.saveDraft()
+                            } else {
+                                navController.navigate(Routes.HOME) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             }
-                            launchSingleTop = true
-                            restoreState = true
+                        } else {
+                            navController.navigate(item.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
                     }
                 )
@@ -62,6 +83,7 @@ fun DiaryApp() {
     ) { innerPadding ->
         DiaryNavHost(
             navController = navController,
+            viewModel = viewModel,
             modifier = Modifier.padding(innerPadding)
         )
     }

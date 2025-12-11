@@ -53,6 +53,26 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
     private val _moodSuggestions = MutableStateFlow(HomeData.getSuggestionsForMood(Mood.NEUTRAL))
     val moodSuggestions: StateFlow<List<String>> = _moodSuggestions.asStateFlow()
 
+    // Draft State for Home Screen
+    private val _draftTitle = MutableStateFlow("")
+    val draftTitle: StateFlow<String> = _draftTitle.asStateFlow()
+
+    private val _draftContent = MutableStateFlow("")
+    val draftContent: StateFlow<String> = _draftContent.asStateFlow()
+
+    fun updateDraftTitle(title: String) { _draftTitle.value = title }
+    fun updateDraftContent(content: String) { _draftContent.value = content }
+
+    // History Screen Filters
+    enum class HistoryTab { ALL, FAVORITES }
+    private val _selectedHistoryTab = MutableStateFlow(HistoryTab.ALL)
+    val selectedHistoryTab: StateFlow<HistoryTab> = _selectedHistoryTab.asStateFlow()
+
+    private val _selectedVibeFilter = MutableStateFlow<Mood?>(null)
+    val selectedVibeFilter: StateFlow<Mood?> = _selectedVibeFilter.asStateFlow()
+
+    val filteredHistoryEntries: StateFlow<List<DiaryEntry>>
+
     init {
         val database = DiaryDatabase.getDatabase(application)
         repository = DiaryRepository(database.diaryDao())
@@ -79,28 +99,61 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
             .map { entries -> entries.firstOrNull() }
             .stateIn(viewModelScope, SharingStarted.Lazily, null)
 
-        // Initialize Mood based on Today's Entry
+        // Initialize Mood and Draft based on Today's Entry
         viewModelScope.launch {
             todayEntry.collect { entry ->
                 val mood = entry?.mood ?: Mood.NEUTRAL
                 _currentMood.value = mood
                 _moodSuggestions.value = HomeData.getSuggestionsForMood(mood)
+                
+                // Only update draft if it's empty (first load) to avoid overwriting user typing
+                if (_draftTitle.value.isEmpty() && _draftContent.value.isEmpty()) {
+                    _draftTitle.value = entry?.title ?: ""
+                    _draftContent.value = entry?.content ?: ""
+                }
             }
         }
         
-        searchResults = _searchQuery
-            .debounce(300)
-            .flatMapLatest { query ->
-                if (query.isBlank()) {
-                    flowOf(emptyList())
-                } else {
-                    repository.searchEntries(query)
+        // Complex Filtering for History
+        filteredHistoryEntries = combine(
+            allEntries,
+            _searchQuery,
+            _selectedHistoryTab,
+            _selectedVibeFilter
+        ) { entries, query, tab, vibe ->
+            var result = entries
+            
+            // 1. Tab Filter
+            if (tab == HistoryTab.FAVORITES) {
+                result = result.filter { it.isFavorite }
+            }
+            
+            // 2. Vibe Filter
+            if (vibe != null) {
+                result = result.filter { it.mood == vibe }
+            }
+            
+            // 3. Search Filter
+            if (query.isNotBlank()) {
+                result = result.filter { 
+                    it.title.contains(query, ignoreCase = true) || 
+                    it.content.contains(query, ignoreCase = true) 
+                    // Note: Date search is implicit if user types date string, but specific date parsing is complex.
+                    // S.No search would require index, which is dynamic.
                 }
             }
-            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+            
+            result
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        
+        // searchResults is now redundant or can alias to filteredHistoryEntries
+        searchResults = filteredHistoryEntries
 
         startTimers()
     }
+
+    fun setHistoryTab(tab: HistoryTab) { _selectedHistoryTab.value = tab }
+    fun setVibeFilter(mood: Mood?) { _selectedVibeFilter.value = mood }
     
     private fun startTimers() {
         // Rotate Sentence every 3 minutes (random 1-5 min is avg 3)
@@ -144,6 +197,18 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
             set(Calendar.MILLISECOND, 0)
         }
         return calendar.timeInMillis
+    }
+    
+    fun saveDraft() {
+        val title = _draftTitle.value
+        val content = _draftContent.value
+        val mood = _currentMood.value
+        val date = System.currentTimeMillis()
+        val existingId = todayEntry.value?.id
+        
+        if (title.isNotBlank() && content.isNotBlank()) {
+            saveEntry(title, content, date, mood, existingId)
+        }
     }
     
     fun saveEntry(title: String, content: String, date: Long, mood: Mood, entryId: Long? = null) {
@@ -205,7 +270,13 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
     
     fun toggleFavorite(entry: DiaryEntry) {
         viewModelScope.launch {
-            repository.toggleFavorite(entry.id, entry.isFavorite)
+            repository.updateEntry(entry.copy(isFavorite = !entry.isFavorite))
+        }
+    }
+    
+    fun toggleLock(entry: DiaryEntry) {
+        viewModelScope.launch {
+            repository.updateEntry(entry.copy(isLocked = !entry.isLocked))
         }
     }
     

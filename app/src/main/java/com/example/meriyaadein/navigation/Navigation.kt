@@ -59,6 +59,10 @@ fun DiaryNavHost(
     val currentMood by viewModel.currentMood.collectAsState()
     val moodSuggestions by viewModel.moodSuggestions.collectAsState()
     
+    // Draft Data
+    val draftTitle by viewModel.draftTitle.collectAsState()
+    val draftContent by viewModel.draftContent.collectAsState()
+    
     NavHost(
         navController = navController,
         startDestination = Routes.HOME,
@@ -70,11 +74,12 @@ fun DiaryNavHost(
                 todayEntry = todayEntry,
                 recentEntries = entries, // Passing all entries for recent slider
                 onWriteClick = {
-                    navController.navigate(Routes.ADD_ENTRY)
+                    // FAB action if needed, or mapped to save
+                    viewModel.saveDraft()
                 },
                 onWriteWithPrompt = { prompt ->
-                    // Navigate with pre-filled prompt
-                    navController.navigate(Routes.addEntryWithPrompt(prompt))
+                    // Pre-fill prompt in draft
+                    viewModel.updateDraftContent(if (draftContent.isEmpty()) prompt else "$draftContent\n$prompt")
                 },
                 onEditClick = { entry ->
                     viewModel.loadEntryById(entry.id)
@@ -91,35 +96,45 @@ fun DiaryNavHost(
                     // Navigate to profile screen
                     navController.navigate(Routes.PROFILE)
                 },
-                userName = userName
+                userName = userName,
+                draftContent = draftContent,
+                onTitleChange = { viewModel.updateDraftTitle(it) },
+                onContentChange = { viewModel.updateDraftContent(it) }
             )
         }
         
         // History - shows all past entries
         composable(Routes.HISTORY) {
+            val historyEntries by viewModel.filteredHistoryEntries.collectAsState()
+            val selectedTab by viewModel.selectedHistoryTab.collectAsState()
+            val selectedVibe by viewModel.selectedVibeFilter.collectAsState()
+            
             HistoryScreen(
-                entries = entries,
+                entries = historyEntries,
                 onEntryClick = { entry ->
                     viewModel.loadEntryById(entry.id)
                     navController.navigate(Routes.editEntry(entry.id))
                 },
                 onFavoriteClick = { entry ->
                     viewModel.toggleFavorite(entry)
+                },
+                onLockClick = { entry ->
+                    viewModel.toggleLock(entry)
+                },
+                onDeleteClick = { entry ->
+                    viewModel.deleteEntry(entry)
                 },
                 searchQuery = searchQuery,
-                onSearchQueryChange = { viewModel.updateSearchQuery(it) }
-            )
-        }
-        
-        composable(Routes.FAVORITES) {
-            FavoritesScreen(
-                favoriteEntries = favoriteEntries,
-                onEntryClick = { entry ->
-                    viewModel.loadEntryById(entry.id)
-                    navController.navigate(Routes.editEntry(entry.id))
+                onSearchQueryChange = { query ->
+                    viewModel.updateSearchQuery(query)
                 },
-                onFavoriteClick = { entry ->
-                    viewModel.toggleFavorite(entry)
+                selectedTab = selectedTab,
+                onTabSelected = { tab ->
+                    viewModel.setHistoryTab(tab)
+                },
+                selectedVibe = selectedVibe,
+                onVibeSelected = { vibe ->
+                    viewModel.setVibeFilter(vibe)
                 }
             )
         }

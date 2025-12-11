@@ -33,18 +33,18 @@ sealed class BottomNavItem(
         unselectedIcon = Icons.Outlined.Home
     )
     
+    data object WriteMemory : BottomNavItem(
+        route = "write_memory",
+        title = "Write",
+        selectedIcon = Icons.Filled.Create,
+        unselectedIcon = Icons.Outlined.Create
+    )
+
     data object History : BottomNavItem(
         route = "history",
-        title = "History",
+        title = "Memories",
         selectedIcon = Icons.Filled.History,
         unselectedIcon = Icons.Outlined.History
-    )
-    
-    data object Favorites : BottomNavItem(
-        route = "favorites",
-        title = "Favorites",
-        selectedIcon = Icons.Filled.Favorite,
-        unselectedIcon = Icons.Outlined.FavoriteBorder
     )
     
     data object Settings : BottomNavItem(
@@ -68,8 +68,8 @@ fun BottomNavBar(
 ) {
     val items = listOf(
         BottomNavItem.Home,
+        BottomNavItem.WriteMemory,
         BottomNavItem.History,
-        BottomNavItem.Favorites,
         BottomNavItem.Settings
     )
     

@@ -4,26 +4,56 @@ import com.example.meriyaadein.data.local.Mood
 
 object HomeData {
     val rotatingSentences = listOf(
-        "Har yaad ek story hoti hai",
-        "Every memory becomes a story",
-        "Jo feel ho, bas likh do",
-        "Dil halka hota hai jab hum likhte hain",
-        "Aaj ka pal bhi yaad ban jayega",
-        "Chhoti yaadein, badi kahani",
-        "Dil ki baat yahin likh lo",
-        "Apni pehli yaad shuru karo",
-        "Har pal ka maza lo, yaad me rakho",
-        "Kal kya hua, yahan likh lo",
-        "Yaadein dil se nikal ke likh do",
-        "Thoda waqt apne liye, yaad likhne me",
-        "Har lambi yaad ek chhoti story",
-        "Jo chhupa hai dil me, use yahin utaro",
-        "Life ka har moment important hai",
-        "Aaj ka din yaadgar banao",
-        "Dil halka karo, bas likh do",
-        "Apni feelings ko yahan sajao",
-        "Yaadien hi zindagi hain",
-        "Ek line me bhi poori kahani ho sakti hai"
+        "Har yaad ek story hoti hai…",
+        "Jo feel ho, bas likh do.",
+        "Tu likhega, tu heal hoga.",
+        "Dil halka hota hai jab hum likhte hain.",
+        "Aaj ka pal bhi yaad ban jayega.",
+        "Chhoti yaadein, badi kahani.",
+        "Dil ki baat yahin likh lo.",
+        "Apni pehli yaad shuru karo.",
+        "Har pal ka maza lo, yaad me rakho.",
+        "Kal kya hua, yahan likh lo.",
+        "Yaadein dil se nikal ke likh do.",
+        "Thoda waqt apne liye, yaad likhne me.",
+        "Har lambi yaad ek chhoti story.",
+        "Jo chhupa hai dil me, use yahin utaro.",
+        "Life ka har moment important hai.",
+        "Aaj ka din yaadgar banao.",
+        "Dil halka karo, bas likh do.",
+        "Apni feelings ko yahan sajao.",
+        "Yaadien hi zindagi hain.",
+        "Ek line me bhi poori kahani ho sakti hai.",
+        "Likho, taaki kal muskura sako.",
+        "Aaj ki diary, kal ka sukoon.",
+        "Mann ka shor, shabdon mein shant karo.",
+        "Kuch baatein sirf diary se hoti hain.",
+        "Apne aap se dosti ka pehla kadam: Likhna.",
+        "Yaadein dhundhli ho jati hain, likha hua nahi.",
+        "Aaj kaisa laga? Sach sach likho.",
+        "Koi judge nahi karega, khul ke likho.",
+        "Tumhari diary, tumhara safe space.",
+        "Ek gehri saans lo, aur shuru karo.",
+        "Jo aaj aam hai, kal khaas hoga.",
+        "Likhne se darr nikal jata hai.",
+        "Apni kahani ke hero tum ho.",
+        "Bure din bhi achhi kahani banate hain.",
+        "Khushi baantne se badhti hai, likhne se amar hoti hai.",
+        "Gussa thook do, ya likh do.",
+        "Aaj ka sabse pyara pal kaunsa tha?",
+        "Kuch naya seekha? Note kar lo.",
+        "Apne sapne yahan safe rakho.",
+        "Darr ke aage jeet hai, likhne ke aage sukoon.",
+        "Zindagi ek safar hai, diary uska map.",
+        "Bhoolne se pehle, qaid kar lo.",
+        "Shabd kam pad jayein, toh emojis use karo!",
+        "Tumhari awaaz, tumhare shabd.",
+        "Aaj khud ko ek compliment do.",
+        "Rona aaye toh likh ke baha do.",
+        "Hasi aaye toh likh ke qaid kar lo.",
+        "Har din ek naya panna hai.",
+        "Kalam uthao, bojh hatao.",
+        "Bas shuruat karo, baaki apne aap hoga."
     )
 
     fun getSuggestionsForMood(mood: Mood): List<String> {
@@ -94,6 +124,9 @@ object HomeData {
         )
 
         val sadSuggestions = listOf(
+            "Dil heavy lag raha hai? Likh do yaar.",
+            "Jo chub raha hai, woh likh de.",
+            "Thoda halka ho ja… likh daal.",
             "Dil udaas hai… likh do",
             "Thoda lighten karo, feelings likho",
             "Aaj kya galat hua?",
@@ -121,9 +154,7 @@ object HomeData {
             "Pachtava hai kisi baat ka?",
             "Maafi mangna chahte ho?",
             "Dil toot gaya?",
-            "Kaash aisa na hota",
-            "Zindagi mushkil hai kabhi kabhi",
-            "Bas aaj nikal jaye"
+            "Kaash aisa na hota"
         )
 
         val loveSuggestions = listOf(

@@ -46,32 +46,30 @@ import kotlin.random.Random
 @Composable
 fun HomeScreen(
     todayEntry: DiaryEntry?,
-    recentEntries: List<DiaryEntry> = emptyList(), // Added ensuring signature match
-    onWriteClick: () -> Unit,
+    recentEntries: List<DiaryEntry> = emptyList(),
+    onWriteClick: () -> Unit, // Kept for compatibility but might be unused if FAB is removed
     onWriteWithPrompt: (String) -> Unit,
     onEditClick: (DiaryEntry) -> Unit,
     onMoodSelected: (Mood) -> Unit,
     onProfileClick: () -> Unit = {},
-    currentSentence: String = "", // Added for signature match 
-    currentTimeMillis: Long = System.currentTimeMillis(), // Added for signature match
-    currentMood: Mood = Mood.NEUTRAL, // Added for signature match
-    moodSuggestions: List<String> = emptyList(), // Added for signature match
+    currentSentence: String = "",
+    currentTimeMillis: Long = System.currentTimeMillis(),
+    currentMood: Mood = Mood.NEUTRAL,
+    moodSuggestions: List<String> = emptyList(),
     userName: String = "Friend",
-    accentColor: String = "#5D1424", // Optional
+    accentColor: String = "#5D1424",
+    draftTitle: String = "",
+    draftContent: String = "",
+    onTitleChange: (String) -> Unit = {},
+    onContentChange: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    // We use the passed currentMood for theming, falling back to todayEntry's mood or internal state
-    // To avoid conflict, we prefer the ViewModel's state (currentMood).
     val effectiveMood = currentMood 
-    
-    // Get mood-based gradient
     val moodGradient = getMoodGradient(effectiveMood)
     
-    // Animation states
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { isVisible = true }
     
-    // Derived date/time strings from passed parameters or local calculation
     val calendar = Calendar.getInstance().apply { timeInMillis = currentTimeMillis }
     val hour = calendar.get(Calendar.HOUR_OF_DAY)
     val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
@@ -101,13 +99,13 @@ fun HomeScreen(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
             
-            // Rotating Sentence using passed param
+            // I. The App Heartbeat: Rotating Sentence
             if (currentSentence.isNotEmpty()) {
                 RotatingSentencesView(sentence = currentSentence)
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // ========== HEADER WITH PROFILE ==========
+            // II. Personal Welcome
             AnimatedVisibility(
                 visible = isVisible,
                 enter = fadeIn(animationSpec = tween(600)) + slideInVertically(
@@ -126,25 +124,10 @@ fun HomeScreen(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // ========== GLASSMORPHISM DAILY SNAPSHOT CARD ==========
+            // III. The Magic Switch: Mood Selector
             AnimatedVisibility(
                 visible = isVisible,
-                enter = fadeIn(animationSpec = tween(600, delayMillis = 400)) + 
-                        scaleIn(initialScale = 0.9f, animationSpec = tween(600, delayMillis = 400))
-            ) {
-                GlassmorphismDailyCard(
-                    entry = todayEntry,
-                    onWriteClick = onWriteClick,
-                    onEditClick = { todayEntry?.let { onEditClick(it) } }
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(28.dp))
-            
-            // ========== INTERACTIVE MOOD SELECTOR ==========
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn(animationSpec = tween(600, delayMillis = 600))
+                enter = fadeIn(animationSpec = tween(600, delayMillis = 400))
             ) {
                 InteractiveMoodSelector(
                     selectedMood = effectiveMood,
@@ -152,241 +135,123 @@ fun HomeScreen(
                 )
             }
             
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             
-            // ========== DYNAMIC AI SUGGESTIONS (MOOD-BASED) ==========
+            // IV. AI Suggestion Box
             AnimatedVisibility(
                 visible = isVisible,
-                enter = fadeIn(animationSpec = tween(600, delayMillis = 800))
+                enter = fadeIn(animationSpec = tween(600, delayMillis = 600))
             ) {
                 DynamicAiSuggestions(
                     selectedMood = effectiveMood,
                     suggestions = moodSuggestions,
-                    onSuggestionClick = onWriteWithPrompt
+                    onSuggestionClick = { suggestion ->
+                        // Append suggestion to content
+                        onContentChange(if (draftContent.isEmpty()) suggestion else "$draftContent\n$suggestion")
+                    }
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // V. The Writing Canvas
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn(animationSpec = tween(600, delayMillis = 800)) + 
+                        scaleIn(initialScale = 0.9f, animationSpec = tween(600, delayMillis = 800))
+            ) {
+                WritingCanvas(
+                    title = draftTitle,
+                    content = draftContent,
+                    onTitleChange = onTitleChange,
+                    onContentChange = onContentChange
                 )
             }
             
             Spacer(modifier = Modifier.height(100.dp))
         }
-        
-        // ========== FLOATING ACTION BUTTON ==========
-        PremiumFloatingActionButton(
-            onClick = onWriteClick,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(24.dp)
-        )
-    }
-}
-
-// ==================== SUB-COMPONENTS ====================
-
-@Composable
-fun RotatingSentencesView(sentence: String) {
-    Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
-    ) {
-        AnimatedContent(
-            targetState = sentence,
-            transitionSpec = {
-                fadeIn(animationSpec = tween(1000)) togetherWith fadeOut(animationSpec = tween(1000))
-            },
-            label = "sentenceAnim"
-        ) { targetSentence ->
-            Text(
-                text = "💬 \"$targetSentence\"",
-                style = MaterialTheme.typography.bodyMedium,
-                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                color = CharcoalSlate.copy(alpha = 0.8f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 32.dp)
-            )
-        }
     }
 }
 
 @Composable
-fun GreetingView(
-    userName: String,
-    greetingTime: Int,
-    timeString: String,
-    dateString: String,
-    onProfileClick: () -> Unit
-) {
-    val (greeting, emoji) = when {
-        greetingTime in 5..11 -> "Good Morning" to "👋"
-        greetingTime in 12..16 -> "Good Afternoon" to "☀️"
-        greetingTime in 17..20 -> "Good Evening" to "🌙"
-        else -> "Good Night" to "⭐"
-    }
-    
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top
-    ) {
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "$greeting, $userName",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = DeepPurple
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = emoji, fontSize = 28.sp)
-            }
-            
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            Text(
-                text = "$dateString • $timeString",
-                style = MaterialTheme.typography.bodyMedium,
-                color = GreyText
-            )
-        }
-        
-        IconButton(
-            onClick = onProfileClick,
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(GlassWhite)
-                .border(2.dp, LavenderMid, CircleShape)
-        ) {
-            Icon(
-                Icons.Default.Person,
-                contentDescription = "Profile",
-                tint = DeepPurple,
-                modifier = Modifier.size(28.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun GlassmorphismDailyCard(
-    entry: DiaryEntry?,
-    onWriteClick: () -> Unit,
-    onEditClick: () -> Unit
+fun WritingCanvas(
+    title: String,
+    content: String,
+    onTitleChange: (String) -> Unit,
+    onContentChange: (String) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 20.dp,
-                shape = RoundedCornerShape(28.dp),
-                ambientColor = DeepPurple.copy(alpha = 0.2f),
-                spotColor = DeepPurple.copy(alpha = 0.15f)
+                elevation = 10.dp,
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = DeepPurple.copy(alpha = 0.1f),
+                spotColor = DeepPurple.copy(alpha = 0.1f)
             ),
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = GlassWhite.copy(alpha = 0.8f))
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(GlassWhite, GlassLight, GlassFrost)
-                    )
-                )
-                .border(
-                    width = 1.dp,
-                    brush = Brush.linearGradient(
-                        colors = listOf(Color.White.copy(alpha = 0.8f), Color.White.copy(alpha = 0.3f))
-                    ),
-                    shape = RoundedCornerShape(28.dp)
-                )
-                .padding(24.dp)
+                .padding(20.dp)
         ) {
-            if (entry != null) {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(Brush.radialGradient(colors = listOf(LavenderMid, PurpleAccent))),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(text = entry.mood.emoji, fontSize = 24.sp)
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = "📝 Aaj ki Yaad",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = DeepPurple
-                                )
-                                Text(
-                                    text = "Daily Snapshot",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = GreyText
-                                )
-                            }
-                        }
-                        IconButton(
-                            onClick = onEditClick,
-                            modifier = Modifier.clip(CircleShape).background(LavenderLight)
-                        ) {
-                            Icon(Icons.Default.Edit, contentDescription = "Edit", tint = DeepPurple)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(20.dp))
+            // Title Input
+            OutlinedTextField(
+                value = title,
+                onValueChange = onTitleChange,
+                placeholder = { 
                     Text(
-                        text = entry.title,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = CharcoalSlate
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = entry.content,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = CharcoalSlate.copy(alpha = 0.75f),
-                        maxLines = 4
-                    )
-                }
-            } else {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(text = "✍️", fontSize = 56.sp)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Aaj kuch likha nahi...",
+                        "Title (e.g., Dost ki Shaadi...)",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = CharcoalSlate
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+                        color = GreyText.copy(alpha = 0.5f)
+                    ) 
+                },
+                textStyle = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = CharcoalSlate
+                ),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent
+                )
+            )
+            
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = LavenderLight.copy(alpha = 0.5f)
+            )
+            
+            // Story Box
+            OutlinedTextField(
+                value = content,
+                onValueChange = onContentChange,
+                placeholder = { 
                     Text(
-                        text = "Apni aaj ki yaad yahan save karo ✨",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = GreyText,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Button(
-                        onClick = onWriteClick,
-                        colors = ButtonDefaults.buttonColors(containerColor = DeepPurple, contentColor = CreamWhite),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.height(52.dp)
-                    ) {
-                        Icon(Icons.Default.Create, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "Likhna Shuru Karo", fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
+                        "Start writing your story here...",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = GreyText.copy(alpha = 0.5f)
+                    ) 
+                },
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    color = CharcoalSlate,
+                    lineHeight = 24.sp
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 200.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent
+                )
+            )
         }
     }
 }
@@ -800,3 +665,84 @@ private data class Orb(
     val speedY: Float = Random.nextFloat() * 0.5f + 0.5f,
     val phase: Double = Random.nextDouble() * Math.PI * 2
 )
+
+@Composable
+private fun RotatingSentencesView(sentence: String) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = GlassWhite.copy(alpha = 0.6f)),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "\"$sentence\"",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                ),
+                color = DeepPurple,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun GreetingView(
+    userName: String,
+    greetingTime: Int,
+    timeString: String,
+    dateString: String,
+    onProfileClick: () -> Unit
+) {
+    val greeting = when (greetingTime) {
+        in 5..11 -> "Good Morning"
+        in 12..16 -> "Good Afternoon"
+        in 17..21 -> "Good Evening"
+        else -> "Good Night"
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text(
+                text = "$greeting, $userName",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = CharcoalSlate
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = dateString,
+                style = MaterialTheme.typography.bodyMedium,
+                color = GreyText
+            )
+        }
+        
+        // Profile Icon
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(DeepPurple.copy(alpha = 0.1f))
+                .clickable(onClick = onProfileClick),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = userName.firstOrNull()?.toString() ?: "M",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = DeepPurple
+            )
+        }
+    }
+}

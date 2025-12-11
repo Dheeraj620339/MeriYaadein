@@ -15,6 +15,7 @@ data class DiaryEntry(
     val date: Long, // Unix timestamp
     val mood: Mood,
     val isFavorite: Boolean = false,
+    val isLocked: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

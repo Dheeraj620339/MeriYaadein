@@ -10,6 +10,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,8 +41,11 @@ import java.util.*
 @Composable
 fun DiaryCard(
     entry: DiaryEntry,
+    index: Int,
     onClick: () -> Unit,
     onFavoriteClick: () -> Unit,
+    onLockClick: () -> Unit,
+    onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val dateFormat = SimpleDateFormat("dd MMM, yyyy", Locale.getDefault())
@@ -54,16 +60,6 @@ fun DiaryCard(
             stiffness = Spring.StiffnessMedium
         ),
         label = "cardScale"
-    )
-    
-    // Favorite heart animation
-    val favoriteScale by animateFloatAsState(
-        targetValue = if (entry.isFavorite) 1.2f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioHighBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "favoriteScale"
     )
     
     Card(
@@ -111,12 +107,32 @@ fun DiaryCard(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Top
                 ) {
-                    // Mood emoji with gradient background
+                    // S.No and Title
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "#$index",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = GreyText.copy(alpha = 0.7f)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = if (entry.isLocked) "🔒 Locked Memory" else entry.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = CharcoalSlate,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    // Mood emoji
                     Box(
                         modifier = Modifier
-                            .size(52.dp)
+                            .size(40.dp)
                             .clip(CircleShape)
                             .background(
                                 Brush.radialGradient(
@@ -130,40 +146,16 @@ fun DiaryCard(
                     ) {
                         Text(
                             text = entry.mood.emoji,
-                            fontSize = 26.sp
-                        )
-                    }
-                    
-                    // Animated Favorite button
-                    IconButton(
-                        onClick = onFavoriteClick,
-                        modifier = Modifier.scale(favoriteScale)
-                    ) {
-                        Icon(
-                            imageVector = if (entry.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = if (entry.isFavorite) "Remove from favorites" else "Add to favorites",
-                            tint = if (entry.isFavorite) PurpleAccent else GreyText
+                            fontSize = 20.sp
                         )
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 
-                // Title
+                // Content preview (blur if locked)
                 Text(
-                    text = entry.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = CharcoalSlate,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                // Content preview
-                Text(
-                    text = entry.content,
+                    text = if (entry.isLocked) "This memory is locked. Tap to unlock." else entry.content,
                     style = MaterialTheme.typography.bodyMedium,
                     color = CharcoalSlate.copy(alpha = 0.7f),
                     maxLines = 2,
@@ -172,10 +164,11 @@ fun DiaryCard(
                 
                 Spacer(modifier = Modifier.height(14.dp))
                 
-                // Date and time
+                // Footer: Date and Actions
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = dateFormat.format(Date(entry.date)),
@@ -183,11 +176,48 @@ fun DiaryCard(
                         fontWeight = FontWeight.Medium,
                         color = DeepPurple
                     )
-                    Text(
-                        text = timeFormat.format(Date(entry.createdAt)),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = GreyText
-                    )
+                    
+                    // Actions
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Favorite
+                        IconButton(
+                            onClick = onFavoriteClick,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (entry.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = "Favorite",
+                                tint = if (entry.isFavorite) PurpleAccent else GreyText,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        
+                        // Lock
+                        IconButton(
+                            onClick = onLockClick,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (entry.isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
+                                contentDescription = "Lock",
+                                tint = if (entry.isLocked) DeepPurple else GreyText,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        
+                        // Delete
+                        IconButton(
+                            onClick = onDeleteClick,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 }
             }
         }

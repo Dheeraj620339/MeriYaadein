@@ -4,6 +4,9 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -15,12 +18,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.clickable
 import com.example.meriyaadein.data.local.DiaryEntry
 import com.example.meriyaadein.ui.components.DateHeader
 import com.example.meriyaadein.ui.components.DiaryCard
 import com.example.meriyaadein.ui.components.EmptyState
 import com.example.meriyaadein.ui.theme.*
 import java.text.SimpleDateFormat
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Share
+import com.example.meriyaadein.viewmodel.DiaryViewModel
 import java.util.*
 
 /**
@@ -32,14 +45,18 @@ fun HistoryScreen(
     entries: List<DiaryEntry>,
     onEntryClick: (DiaryEntry) -> Unit,
     onFavoriteClick: (DiaryEntry) -> Unit,
+    onLockClick: (DiaryEntry) -> Unit,
+    onDeleteClick: (DiaryEntry) -> Unit,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
+    selectedTab: DiaryViewModel.HistoryTab,
+    onTabSelected: (DiaryViewModel.HistoryTab) -> Unit,
+    selectedVibe: Mood?,
+    onVibeSelected: (Mood?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isSearchVisible by remember { mutableStateOf(false) }
-    var isVisible by remember { mutableStateOf(false) }
-    
-    LaunchedEffect(Unit) { isVisible = true }
+    var showDeleteDialog by remember { mutableStateOf<DiaryEntry?>(null) }
+    var showViewModal by remember { mutableStateOf<DiaryEntry?>(null) }
     
     val gradientBackground = Brush.verticalGradient(
         colors = listOf(
@@ -54,111 +71,271 @@ fun HistoryScreen(
             .fillMaxSize()
             .background(gradientBackground)
     ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        AnimatedVisibility(
-                            visible = !isSearchVisible,
-                            enter = fadeIn(),
-                            exit = fadeOut()
-                        ) {
-                            Column {
-                                Text(
-                                    text = "📜 History",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = DeepPurple
-                                )
-                                Text(
-                                    text = "Puraani yaadein",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = GreyText
-                                )
-                            }
-                        }
-                        AnimatedVisibility(
-                            visible = isSearchVisible,
-                            enter = fadeIn() + expandHorizontally(),
-                            exit = fadeOut() + shrinkHorizontally()
-                        ) {
-                            OutlinedTextField(
-                                value = searchQuery,
-                                onValueChange = onSearchQueryChange,
-                                placeholder = { Text("Search memories...") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = DeepPurple,
-                                    cursorColor = DeepPurple
-                                )
-                            )
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { isSearchVisible = !isSearchVisible }) {
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = "Search",
-                                tint = DeepPurple
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = GlassWhite
-                    )
-                )
-            },
-            containerColor = androidx.compose.ui.graphics.Color.Transparent
-        ) { paddingValues ->
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn(animationSpec = tween(500))
+        Column(modifier = Modifier.fillMaxSize()) {
+            // I. Upar Ka Fixed Area (The Command Center)
+            // 1. Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                if (entries.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        EmptyState(
-                            title = "Koi puraani yaad nahi",
-                            subtitle = "Jab tum likhoge, sab yahan dikhega ✨"
+                Column {
+                    Text(
+                        text = "📚 Yaadon Ki Gallery",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = DeepPurple
+                    )
+                }
+                IconButton(onClick = { /* Open Settings/PIN */ }) {
+                    Icon(
+                        Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        tint = DeepPurple
+                    )
+                }
+            }
+            
+            // 2. Navigation Tabs
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+            ) {
+                TabButton(
+                    text = "📜 Yaadein",
+                    isSelected = selectedTab == DiaryViewModel.HistoryTab.ALL,
+                    onClick = { onTabSelected(DiaryViewModel.HistoryTab.ALL) }
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                TabButton(
+                    text = "❤️ Favorite",
+                    isSelected = selectedTab == DiaryViewModel.HistoryTab.FAVORITES,
+                    onClick = { onTabSelected(DiaryViewModel.HistoryTab.FAVORITES) }
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // II. The Filter & Search Toolbox (Sticky Area)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(GlassWhite.copy(alpha = 0.9f))
+                    .padding(vertical = 12.dp)
+            ) {
+                // 1. Search Bar
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    placeholder = { Text("Search title, date, or S.No...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = DeepPurple) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = DeepPurple,
+                        unfocusedBorderColor = LavenderMid,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White.copy(alpha = 0.7f)
+                    ),
+                    singleLine = true
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // 2. Vibe Tags (Horizontal Scroll)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // "Sab Dekho" (Clear Filter)
+                    FilterChip(
+                        selected = selectedVibe == null,
+                        onClick = { onVibeSelected(null) },
+                        label = { Text("Sab Dekho") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = DeepPurple,
+                            selectedLabelColor = Color.White
                         )
-                    }
-                } else {
-                    val groupedEntries = remember(entries) {
-                        entries.groupBy { entry ->
-                            val sdf = SimpleDateFormat("dd MMMM, yyyy", Locale.getDefault())
-                            sdf.format(Date(entry.date))
-                        }
-                    }
+                    )
                     
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
-                    ) {
-                        groupedEntries.forEach { (date, entriesForDate) ->
-                            item {
-                                DateHeader(dateText = date)
-                            }
-                            
-                            items(entriesForDate, key = { it.id }) { entry ->
-                                DiaryCard(
-                                    entry = entry,
-                                    onClick = { onEntryClick(entry) },
-                                    onFavoriteClick = { onFavoriteClick(entry) }
-                                )
-                            }
-                        }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    Mood.entries.forEach { mood ->
+                        FilterChip(
+                            selected = selectedVibe == mood,
+                            onClick = { onVibeSelected(if (selectedVibe == mood) null else mood) },
+                            label = { Text("${mood.emoji} ${mood.label}") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = DeepPurple,
+                                selectedLabelColor = Color.White
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                }
+            }
+            
+            // III. The Memory Cards (Gallery)
+            if (entries.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    EmptyState(
+                        title = "Koi yaad nahi mili",
+                        subtitle = "Filters change karke dekho ya kuch naya likho ✨"
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(entries.size) { i ->
+                        val entry = entries[i]
+                        val index = entries.size - i
+                        
+                        DiaryCard(
+                            entry = entry,
+                            index = index,
+                            onClick = { 
+                                if (entry.isLocked) {
+                                    onLockClick(entry) 
+                                } else {
+                                    showViewModal = entry 
+                                }
+                            },
+                            onFavoriteClick = { onFavoriteClick(entry) },
+                            onLockClick = { onLockClick(entry) },
+                            onDeleteClick = { showDeleteDialog = entry }
+                        )
                     }
                 }
             }
         }
+    }
+    
+    // Delete Dialog
+    if (showDeleteDialog != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = null },
+            title = { Text("Delete Memory?") },
+            text = { Text("Pakka delete karna hai? Yeh wapas nahi aayegi.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteClick(showDeleteDialog!!)
+                        showDeleteDialog = null
+                    }
+                ) {
+                    Text("Yes, Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+    
+    // View Modal (Full Story)
+    if (showViewModal != null) {
+        val entry = showViewModal!!
+        ModalBottomSheet(
+            onDismissRequest = { showViewModal = null },
+            containerColor = GlassWhite
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = entry.title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = DeepPurple
+                    )
+                    Text(
+                        text = entry.mood.emoji,
+                        fontSize = 32.sp
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = SimpleDateFormat("EEEE, dd MMMM yyyy", Locale.getDefault()).format(Date(entry.date)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = GreyText
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = entry.content,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = CharcoalSlate
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                // PDF Buttons
+                Button(
+                    onClick = { /* Generate PDF */ },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = DeepPurple)
+                ) {
+                    Icon(Icons.Default.Download, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Download PDF")
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = { /* Share PDF */ },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Share, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Share PDF")
+                }
+                Spacer(modifier = Modifier.height(32.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun TabButton(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(if (isSelected) DeepPurple else Color.Transparent)
+            .border(1.dp, if (isSelected) DeepPurple else GreyText.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = text,
+            color = if (isSelected) Color.White else GreyText,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+        )
     }
 }
