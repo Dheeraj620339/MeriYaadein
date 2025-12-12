@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -367,15 +368,15 @@ private fun DynamicAiSuggestions(
                         modifier = Modifier.weight(1f)
                     )
                     Icon(
-                        Icons.Default.ArrowForward,
+                        Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = "Write",
                         tint = DeepPurple.copy(alpha = 0.5f),
                         modifier = Modifier.size(18.dp)
                     )
                 }
-            }
         }
     }
+}
 }
 
 @Composable

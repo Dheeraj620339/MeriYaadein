@@ -24,6 +24,7 @@ import com.example.meriyaadein.data.local.DiaryEntry
 import com.example.meriyaadein.ui.components.DateHeader
 import com.example.meriyaadein.ui.components.DiaryCard
 import com.example.meriyaadein.ui.components.EmptyState
+import com.example.meriyaadein.ui.components.PinDialog
 import com.example.meriyaadein.ui.theme.*
 import java.text.SimpleDateFormat
 import androidx.compose.ui.draw.clip
@@ -35,6 +36,7 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Share
 import com.example.meriyaadein.viewmodel.DiaryViewModel
 import java.util.*
+import com.example.meriyaadein.data.local.Mood
 
 /**
  * History screen - shows all past entries with premium design
@@ -53,10 +55,15 @@ fun HistoryScreen(
     onTabSelected: (DiaryViewModel.HistoryTab) -> Unit,
     selectedVibe: Mood?,
     onVibeSelected: (Mood?) -> Unit,
+    isPinSet: Boolean,
+    onSetPin: (String) -> Unit,
+    onValidatePin: (String) -> Boolean,
     modifier: Modifier = Modifier
 ) {
     var showDeleteDialog by remember { mutableStateOf<DiaryEntry?>(null) }
     var showViewModal by remember { mutableStateOf<DiaryEntry?>(null) }
+    var showPinDialogForEntry by remember { mutableStateOf<DiaryEntry?>(null) }
+    var showSetPinDialog by remember { mutableStateOf(false) }
     
     val gradientBackground = Brush.verticalGradient(
         colors = listOf(
@@ -89,7 +96,7 @@ fun HistoryScreen(
                         color = DeepPurple
                     )
                 }
-                IconButton(onClick = { /* Open Settings/PIN */ }) {
+                IconButton(onClick = { showSetPinDialog = true }) {
                     Icon(
                         Icons.Default.Settings,
                         contentDescription = "Settings",
@@ -190,10 +197,10 @@ fun HistoryScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    EmptyState(
-                        title = "Koi yaad nahi mili",
-                        subtitle = "Filters change karke dekho ya kuch naya likho ✨"
-                    )
+                    // EmptyState(
+                    //     title = "Koi yaad nahi mili",
+                    //     subtitle = "Filters change karke dekho ya kuch naya likho ✨"
+                    // )
                 }
             } else {
                 LazyColumn(
@@ -212,7 +219,11 @@ fun HistoryScreen(
                             index = index,
                             onClick = { 
                                 if (entry.isLocked) {
-                                    onLockClick(entry) 
+                                    if (isPinSet) {
+                                        showPinDialogForEntry = entry
+                                    } else {
+                                        showSetPinDialog = true
+                                    }
                                 } else {
                                     showViewModal = entry 
                                 }
@@ -293,9 +304,13 @@ fun HistoryScreen(
                 )
                 Spacer(modifier = Modifier.height(32.dp))
                 
+                val context = androidx.compose.ui.platform.LocalContext.current
+                
                 // PDF Buttons
                 Button(
-                    onClick = { /* Generate PDF */ },
+                    onClick = { 
+                        com.example.meriyaadein.utils.PdfGenerator.generateDiaryPdf(context, entry)
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = DeepPurple)
                 ) {
@@ -305,7 +320,22 @@ fun HistoryScreen(
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedButton(
-                    onClick = { /* Share PDF */ },
+                    onClick = { 
+                        val file = com.example.meriyaadein.utils.PdfGenerator.generateDiaryPdf(context, entry)
+                        if (file != null) {
+                            val uri = androidx.core.content.FileProvider.getUriForFile(
+                                context,
+                                "${context.packageName}.provider",
+                                file
+                            )
+                            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "application/pdf"
+                                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(android.content.Intent.createChooser(intent, "Share PDF"))
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(Icons.Default.Share, contentDescription = null)
@@ -315,6 +345,42 @@ fun HistoryScreen(
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }
+    }
+
+
+    // PIN Dialog for Entry Access
+    var pinError by remember { mutableStateOf<String?>(null) }
+
+    if (showPinDialogForEntry != null) {
+        PinDialog(
+            title = "Unlock Memory",
+            onPinEntered = { pin ->
+                if (onValidatePin(pin)) {
+                    showViewModal = showPinDialogForEntry
+                    showPinDialogForEntry = null
+                    pinError = null
+                } else {
+                    pinError = "Incorrect PIN"
+                }
+            },
+            onDismiss = { 
+                showPinDialogForEntry = null 
+                pinError = null
+            },
+            errorMessage = pinError
+        )
+    }
+    
+    // Set PIN Dialog
+    if (showSetPinDialog) {
+        PinDialog(
+            title = if (isPinSet) "Change PIN" else "Set New PIN",
+            onPinEntered = { pin ->
+                onSetPin(pin)
+                showSetPinDialog = false
+            },
+            onDismiss = { showSetPinDialog = false }
+        )
     }
 }
 

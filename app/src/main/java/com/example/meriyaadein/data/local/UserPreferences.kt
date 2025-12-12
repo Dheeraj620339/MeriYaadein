@@ -20,6 +20,7 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "us
 object UserPreferencesKeys {
     val USER_NAME = stringPreferencesKey("user_name")
     val ACCENT_COLOR = stringPreferencesKey("accent_color")
+    val USER_PIN = stringPreferencesKey("user_pin")
 }
 
 class UserPreferences(private val context: Context) {
@@ -43,6 +44,13 @@ class UserPreferences(private val context: Context) {
     val accentColor: Flow<String> = context.dataStore.data.map { preferences ->
         preferences[UserPreferencesKeys.ACCENT_COLOR] ?: DEFAULT_ACCENT_COLOR
     }
+
+    /**
+     * Get user PIN as Flow
+     */
+    val userPin: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[UserPreferencesKeys.USER_PIN]
+    }
     
     /**
      * Save user name
@@ -59,6 +67,15 @@ class UserPreferences(private val context: Context) {
     suspend fun saveAccentColor(color: String) {
         context.dataStore.edit { preferences ->
             preferences[UserPreferencesKeys.ACCENT_COLOR] = color
+        }
+    }
+
+    /**
+     * Save user PIN
+     */
+    suspend fun saveUserPin(pin: String) {
+        context.dataStore.edit { preferences ->
+            preferences[UserPreferencesKeys.USER_PIN] = pin
         }
     }
 }

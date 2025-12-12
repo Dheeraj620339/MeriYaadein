@@ -36,6 +36,8 @@ fun CalendarScreen(
     onDateSelected: (Long) -> Unit,
     onEntryClick: (DiaryEntry) -> Unit,
     onFavoriteClick: (DiaryEntry) -> Unit,
+    onLockClick: (DiaryEntry) -> Unit,
+    onDeleteClick: (DiaryEntry) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var currentMonth by remember { mutableStateOf(Calendar.getInstance()) }
@@ -166,8 +168,11 @@ fun CalendarScreen(
                     items(entriesForSelectedDate, key = { it.id }) { entry ->
                         DiaryCard(
                             entry = entry,
+                            index = 0, // Index not strictly needed in calendar view
                             onClick = { onEntryClick(entry) },
-                            onFavoriteClick = { onFavoriteClick(entry) }
+                            onFavoriteClick = { onFavoriteClick(entry) },
+                            onLockClick = { onLockClick(entry) },
+                            onDeleteClick = { onDeleteClick(entry) }
                         )
                     }
                 }

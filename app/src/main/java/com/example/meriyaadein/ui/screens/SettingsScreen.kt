@@ -12,7 +12,9 @@ import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.automirrored.outlined.Message
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import com.example.meriyaadein.ui.components.PinDialog
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,8 +32,13 @@ import com.example.meriyaadein.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    isPinSet: Boolean = false,
+    onSetPin: (String) -> Unit = {},
+    onValidatePin: (String) -> Boolean = { true },
     modifier: Modifier = Modifier
 ) {
+    var showSetPinDialog by remember { mutableStateOf(false) }
+    var showVerifyPinDialog by remember { mutableStateOf(false) }
     val isDark = isSystemInDarkTheme()
     
     // Theme-aware colors
@@ -84,14 +91,6 @@ fun SettingsScreen(
                     SettingsItem(
                         icon = Icons.Outlined.Edit,
                         title = "Edit Name",
-                        iconTint = iconTint,
-                        titleColor = itemTitleColor,
-                        subtitleColor = itemSubtitleColor
-                    )
-                    SettingsDivider(dividerColor)
-                    SettingsItem(
-                        icon = Icons.Outlined.CameraAlt,
-                        title = "Change Photo",
                         iconTint = iconTint,
                         titleColor = itemTitleColor,
                         subtitleColor = itemSubtitleColor
@@ -247,10 +246,17 @@ fun SettingsScreen(
                 ) {
                     SettingsItem(
                         icon = Icons.Outlined.Lock,
-                        title = "App Lock",
+                        title = if (isPinSet) "Change PIN" else "Set App Lock",
                         iconTint = iconTint,
                         titleColor = itemTitleColor,
-                        subtitleColor = itemSubtitleColor
+                        subtitleColor = itemSubtitleColor,
+                        onClick = {
+                            if (isPinSet) {
+                                showVerifyPinDialog = true
+                            } else {
+                                showSetPinDialog = true
+                            }
+                        }
                     )
                     SettingsDivider(dividerColor)
                     SettingsItem(
@@ -333,6 +339,9 @@ fun SettingsScreen(
             }
         }
     }
+    
+    // Dialogs
+
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

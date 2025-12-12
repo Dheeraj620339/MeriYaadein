@@ -322,4 +322,22 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
             userPreferences.saveAccentColor(color)
         }
     }
+
+    // ==================== PIN Verification ====================
+
+    val userPin: StateFlow<String?> = userPreferences.userPin
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    val isPinSet: StateFlow<Boolean> = userPin.map { !it.isNullOrBlank() }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    fun setPin(pin: String) {
+        viewModelScope.launch {
+            userPreferences.saveUserPin(pin)
+        }
+    }
+
+    fun validatePin(inputPin: String): Boolean {
+        return userPin.value == inputPin
+    }
 }

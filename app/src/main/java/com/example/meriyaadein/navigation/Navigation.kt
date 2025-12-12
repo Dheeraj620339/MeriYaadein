@@ -13,6 +13,7 @@ import com.example.meriyaadein.viewmodel.DiaryViewModel
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import com.example.meriyaadein.data.local.Mood
 
 /**
  * Navigation routes
@@ -135,12 +136,19 @@ fun DiaryNavHost(
                 selectedVibe = selectedVibe,
                 onVibeSelected = { vibe ->
                     viewModel.setVibeFilter(vibe)
-                }
+                },
+                isPinSet = viewModel.isPinSet.collectAsState().value,
+                onSetPin = { pin -> viewModel.setPin(pin) },
+                onValidatePin = { pin -> viewModel.validatePin(pin) }
             )
         }
         
         composable(Routes.SETTINGS) {
-            SettingsScreen()
+            SettingsScreen(
+                isPinSet = viewModel.isPinSet.collectAsState().value,
+                onSetPin = { pin -> viewModel.setPin(pin) },
+                onValidatePin = { pin -> viewModel.validatePin(pin) }
+            )
         }
         
         // Profile Screen
