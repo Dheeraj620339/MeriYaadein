@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import java.util.*
+import kotlin.random.Random
 import com.example.meriyaadein.data.HomeData
 
 /**
@@ -156,10 +157,12 @@ class DiaryViewModel(application: Application) : AndroidViewModel(application) {
     fun setVibeFilter(mood: Mood?) { _selectedVibeFilter.value = mood }
     
     private fun startTimers() {
-        // Rotate Sentence every 3 minutes (random 1-5 min is avg 3)
+        // Rotate Sentence every 1-5 minutes (random)
         viewModelScope.launch {
             while(true) {
-                delay(180_000) // 3 minutes
+                // Random delay between 1 to 5 minutes (60,000 to 300,000 ms)
+                val randomDelay = (Random.nextLong(60_000, 300_000))
+                delay(randomDelay)
                 _currentSentence.value = HomeData.rotatingSentences.random()
             }
         }

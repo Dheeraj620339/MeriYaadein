@@ -2,18 +2,15 @@ package com.example.meriyaadein.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +21,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -37,18 +35,19 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 /**
- * Professional Home Screen with:
- * - Dynamic Greeting with User Profile
- * - Date + Weather Display
- * - Mood-based Animations
- * - Dynamic AI Suggestions based on Mood
+ * Premium Home Screen Redesign
+ * - Top Quote Section
+ * - Greeting + Date + Time
+ * - Mood Selector (Theme Changer)
+ * - AI Suggestion Box (Auto-scroll)
+ * - Bottom Navigation with Hero Write Button
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     todayEntry: DiaryEntry?,
     recentEntries: List<DiaryEntry> = emptyList(),
-    onWriteClick: () -> Unit, // Kept for compatibility but might be unused if FAB is removed
+    onWriteClick: () -> Unit,
     onWriteWithPrompt: (String) -> Unit,
     onEditClick: (DiaryEntry) -> Unit,
     onMoodSelected: (Mood) -> Unit,
@@ -63,7 +62,9 @@ fun HomeScreen(
     draftContent: String = "",
     onTitleChange: (String) -> Unit = {},
     onContentChange: (String) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onNavigateToHistory: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {}
 ) {
     val effectiveMood = currentMood 
     val moodGradient = getMoodGradient(effectiveMood)
@@ -79,202 +80,180 @@ fun HomeScreen(
     val timeString = timeFormat.format(calendar.time)
     val dateString = dateFormat.format(calendar.time)
 
-    Box(
-        modifier = modifier.fillMaxSize()
-    ) {
-        // Background with mood gradient
+    Scaffold(
+        bottomBar = {
+            HomeBottomNavigation(
+                onHomeClick = { /* Already on Home */ },
+                onWriteClick = onWriteClick,
+                onHistoryClick = onNavigateToHistory,
+                onSettingsClick = onNavigateToSettings
+            )
+        },
+        containerColor = Color.Transparent,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+    ) { paddingValues ->
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxSize()
-                .background(moodGradient)
-        )
-        
-        // Mood-based animation overlay
-        MoodAnimationOverlay(selectedMood = effectiveMood)
-        
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
+                .padding(paddingValues)
         ) {
-            Spacer(modifier = Modifier.height(20.dp))
+            // Background with mood gradient
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(moodGradient)
+            )
             
-            // I. The App Heartbeat: Rotating Sentence
-            if (currentSentence.isNotEmpty()) {
-                RotatingSentencesView(sentence = currentSentence)
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            // II. Personal Welcome
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn(animationSpec = tween(600)) + slideInVertically(
-                    initialOffsetY = { -40 },
-                    animationSpec = tween(600)
-                )
+            // Mood-based animation overlay
+            MoodAnimationOverlay(selectedMood = effectiveMood)
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
             ) {
-                GreetingView(
+                // 1. TOP QUOTE SECTION
+                QuoteHeader(quote = currentSentence)
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // 2. GREETING + DATE + TIME
+                GreetingSection(
                     userName = userName,
                     greetingTime = hour,
                     timeString = timeString,
-                    dateString = dateString,
-                    onProfileClick = onProfileClick
+                    dateString = dateString
                 )
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // III. The Magic Switch: Mood Selector
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn(animationSpec = tween(600, delayMillis = 400))
-            ) {
-                InteractiveMoodSelector(
+                
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                // 3. MOOD SELECTOR
+                MoodSelector(
                     selectedMood = effectiveMood,
                     onMoodSelected = onMoodSelected
                 )
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // IV. AI Suggestion Box
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn(animationSpec = tween(600, delayMillis = 600))
-            ) {
-                DynamicAiSuggestions(
-                    selectedMood = effectiveMood,
+                
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                // 4. AI SUGGESTION BOX
+                AiSuggestionCard(
                     suggestions = moodSuggestions,
-                    onSuggestionClick = { suggestion ->
-                        // Append suggestion to content
-                        onContentChange(if (draftContent.isEmpty()) suggestion else "$draftContent\n$suggestion")
-                    }
+                    onSuggestionClick = onWriteWithPrompt
                 )
+                
+                Spacer(modifier = Modifier.height(100.dp)) // Bottom padding for nav bar
             }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // V. The Writing Canvas
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn(animationSpec = tween(600, delayMillis = 800)) + 
-                        scaleIn(initialScale = 0.9f, animationSpec = tween(600, delayMillis = 800))
-            ) {
-                WritingCanvas(
-                    title = draftTitle,
-                    content = draftContent,
-                    onTitleChange = onTitleChange,
-                    onContentChange = onContentChange
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(100.dp))
         }
     }
 }
 
+// 1. TOP QUOTE SECTION
 @Composable
-fun WritingCanvas(
-    title: String,
-    content: String,
-    onTitleChange: (String) -> Unit,
-    onContentChange: (String) -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = 10.dp,
-                shape = RoundedCornerShape(24.dp),
-                ambientColor = DeepPurple.copy(alpha = 0.1f),
-                spotColor = DeepPurple.copy(alpha = 0.1f)
-            ),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = GlassWhite.copy(alpha = 0.8f))
+fun QuoteHeader(quote: String) {
+    var visible by remember { mutableStateOf(true) }
+    var currentQuote by remember { mutableStateOf(quote) }
+
+    LaunchedEffect(quote) {
+        visible = false
+        kotlinx.coroutines.delay(500)
+        currentQuote = quote
+        visible = true
+    }
+
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(animationSpec = tween(800)),
+        exit = fadeOut(animationSpec = tween(500))
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp)
+                .padding(top = 40.dp, start = 24.dp, end = 24.dp),
+            contentAlignment = Alignment.Center
         ) {
-            // Title Input
-            OutlinedTextField(
-                value = title,
-                onValueChange = onTitleChange,
-                placeholder = { 
-                    Text(
-                        "Title (e.g., Dost ki Shaadi...)",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = GreyText.copy(alpha = 0.5f)
-                    ) 
-                },
-                textStyle = MaterialTheme.typography.titleMedium.copy(
+            Text(
+                text = "\"$currentQuote\"",
+                style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    color = CharcoalSlate
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                    lineHeight = 40.sp
                 ),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent
-                )
-            )
-            
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 8.dp),
-                color = LavenderLight.copy(alpha = 0.5f)
-            )
-            
-            // Story Box
-            OutlinedTextField(
-                value = content,
-                onValueChange = onContentChange,
-                placeholder = { 
-                    Text(
-                        "Start writing your story here...",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = GreyText.copy(alpha = 0.5f)
-                    ) 
-                },
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    color = CharcoalSlate,
-                    lineHeight = 24.sp
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 200.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent
-                )
+                color = DeepPurple,
+                textAlign = TextAlign.Center,
+                fontSize = 28.sp
             )
         }
     }
 }
 
+// 2. GREETING + DATE + TIME
 @Composable
-private fun InteractiveMoodSelector(
+fun GreetingSection(
+    userName: String,
+    greetingTime: Int,
+    timeString: String,
+    dateString: String
+) {
+    val greeting = when (greetingTime) {
+        in 5..11 -> "Good Morning"
+        in 12..16 -> "Good Afternoon"
+        in 17..21 -> "Good Evening"
+        else -> "Good Night"
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+    ) {
+        Text(
+            text = "👋 $greeting, $userName",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = CharcoalSlate
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "📆 $dateString",
+            style = MaterialTheme.typography.bodyMedium,
+            color = GreyText
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "⏱ $timeString",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = DeepPurple
+        )
+    }
+}
+
+// 3. MOOD SELECTOR
+@Composable
+fun MoodSelector(
     selectedMood: Mood,
     onMoodSelected: (Mood) -> Unit
 ) {
-    Column {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Text(
             text = "How are you feeling?",
-            style = MaterialTheme.typography.titleSmall,
-            color = CharcoalSlate
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            color = CharcoalSlate,
+            modifier = Modifier.padding(horizontal = 24.dp)
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+        
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Mood.entries.forEach { mood ->
-                MoodChip(
+                MoodEmojiItem(
                     mood = mood,
                     isSelected = mood == selectedMood,
                     onClick = { onMoodSelected(mood) }
@@ -285,118 +264,268 @@ private fun InteractiveMoodSelector(
 }
 
 @Composable
-private fun MoodChip(
+fun MoodEmojiItem(
     mood: Mood,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 1.2f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "scale"
+    )
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .scale(scale)
+            .clickable(onClick = onClick)
+            .padding(4.dp)
+    ) {
+        Text(
+            text = mood.emoji,
+            fontSize = 32.sp
+        )
+    }
+}
+
+// 4. AI SUGGESTION BOX
+@Composable
+fun AiSuggestionCard(
+    suggestions: List<String>,
+    onSuggestionClick: (String) -> Unit
+) {
+    val listState = rememberScrollState()
+    
+    // Auto-scroll logic
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(50)
+            if (listState.value < listState.maxValue) {
+                listState.animateScrollTo(listState.value + 2)
+            } else {
+                listState.scrollTo(0)
+            }
+        }
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(220.dp)
+            .padding(horizontal = 24.dp)
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = DeepPurple.copy(alpha = 0.1f),
+                spotColor = DeepPurple.copy(alpha = 0.1f)
+            ),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = GlassWhite.copy(alpha = 0.9f))
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp)
+        ) {
+            Text(
+                text = "✨ AI SUGGESTION",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = DeepPurple,
+                letterSpacing = 1.sp
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(listState)
+            ) {
+                suggestions.forEach { suggestion ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .clickable { onSuggestionClick(suggestion) },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(DeepPurple.copy(alpha = 0.5f), CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = suggestion,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = CharcoalSlate.copy(alpha = 0.8f),
+                            lineHeight = 20.sp
+                        )
+                    }
+                    HorizontalDivider(color = LavenderLight.copy(alpha = 0.3f))
+                }
+                // Duplicate list for infinite scroll illusion
+                suggestions.forEach { suggestion ->
+                     Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .clickable { onSuggestionClick(suggestion) },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(DeepPurple.copy(alpha = 0.5f), CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = suggestion,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = CharcoalSlate.copy(alpha = 0.8f),
+                            lineHeight = 20.sp
+                        )
+                    }
+                    HorizontalDivider(color = LavenderLight.copy(alpha = 0.3f))
+                }
+            }
+        }
+    }
+}
+
+// 5. BOTTOM NAVIGATION
+@Composable
+fun HomeBottomNavigation(
+    onHomeClick: () -> Unit,
+    onWriteClick: () -> Unit,
+    onHistoryClick: () -> Unit,
+    onSettingsClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        // Background Bar
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .shadow(elevation = 16.dp, shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
+            color = Color.White,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Home Button
+                NavButton(
+                    icon = Icons.Default.Home,
+                    label = "Home",
+                    isSelected = true,
+                    onClick = onHomeClick
+                )
+                
+                Spacer(modifier = Modifier.width(48.dp)) // Space for Write Button
+                
+                // History Button
+                NavButton(
+                    icon = Icons.Default.History,
+                    label = "History",
+                    isSelected = false,
+                    onClick = onHistoryClick
+                )
+                
+                // Settings Button
+                NavButton(
+                    icon = Icons.Default.Settings,
+                    label = "Settings",
+                    isSelected = false,
+                    onClick = onSettingsClick
+                )
+            }
+        }
+        
+        // Hero Write Button
+        Box(
+            modifier = Modifier
+                .padding(bottom = 30.dp)
+                .size(72.dp)
+                .shadow(
+                    elevation = 12.dp,
+                    shape = CircleShape,
+                    spotColor = DeepPurple.copy(alpha = 0.5f)
+                )
+                .clip(CircleShape)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(DeepPurple, Color(0xFF9575CD))
+                    )
+                )
+                .clickable(onClick = onWriteClick),
+            contentAlignment = Alignment.Center
+        ) {
+            // Pulse Animation
+            val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+            val scale by infiniteTransition.animateFloat(
+                initialValue = 1f,
+                targetValue = 1.1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1000),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "pulse"
+            )
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .scale(scale)
+                    .border(2.dp, Color.White.copy(alpha = 0.3f), CircleShape)
+            )
+            
+            Icon(
+                imageVector = Icons.Default.Edit,
+                contentDescription = "Write",
+                tint = Color.White,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun NavButton(
+    icon: ImageVector,
+    label: String,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable(onClick = onClick)
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(8.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape)
-                .background(if (isSelected) DustyRose else BlushMist.copy(alpha = 0.5f))
-                .border(
-                    width = if (isSelected) 3.dp else 0.dp,
-                    color = if (isSelected) VelvetBurgundy else Color.Transparent,
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = mood.emoji, fontSize = 28.sp)
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (isSelected) DeepPurple else GreyText,
+            modifier = Modifier.size(24.dp)
+        )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = mood.label,
+            text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = if (isSelected) VelvetBurgundy else CharcoalSlate.copy(alpha = 0.7f)
+            color = if (isSelected) DeepPurple else GreyText,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
         )
     }
 }
 
-@Composable
-private fun DynamicAiSuggestions(
-    selectedMood: Mood,
-    suggestions: List<String>,
-    onSuggestionClick: (String) -> Unit
-) {
-    val suggestionsToDisplay = if (suggestions.isNotEmpty()) suggestions else getMoodBasedSuggestions(selectedMood).map { it.second }
-    
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "✨ ${getMoodSuggestionTitle(selectedMood)}",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium,
-                color = GreyText
-            )
-            Text(
-                text = "Tap to write",
-                style = MaterialTheme.typography.labelSmall,
-                color = DeepPurple.copy(alpha = 0.7f)
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(12.dp))
-        
-        suggestionsToDisplay.take(3).forEach { suggestion ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-                    .clickable { onSuggestionClick(suggestion) },
-                colors = CardDefaults.cardColors(containerColor = GlassWhite),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = "💡", fontSize = 18.sp)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = suggestion,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = CharcoalSlate.copy(alpha = 0.8f),
-                        modifier = Modifier.weight(1f)
-                    )
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Write",
-                        tint = DeepPurple.copy(alpha = 0.5f),
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-        }
-    }
-}
-}
-
-@Composable
-private fun PremiumFloatingActionButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    FloatingActionButton(
-        onClick = onClick,
-        containerColor = DeepPurple,
-        contentColor = CreamWhite,
-        shape = CircleShape,
-        elevation = FloatingActionButtonDefaults.elevation(8.dp),
-        modifier = modifier.size(64.dp)
-    ) {
-        Icon(Icons.Default.Add, contentDescription = "Add Entry", modifier = Modifier.size(32.dp))
-    }
-}
-
-// ==================== MOOD ANIMATION OVERLAY ====================
+// ==================== MOOD ANIMATION OVERLAY (Reused) ====================
 @Composable
 private fun MoodAnimationOverlay(selectedMood: Mood) {
     when (selectedMood) {
@@ -535,59 +664,6 @@ private fun FloatingOrbsAnimation() {
     }
 }
 
-// Helpers 
-private fun getMoodSuggestionTitle(mood: Mood): String {
-    return when (mood) {
-        Mood.HAPPY, Mood.EXCITED -> "Share your joy!"
-        Mood.SAD, Mood.ANXIOUS -> "Let it out..."
-        Mood.ROMANTIC, Mood.GRATEFUL -> "Express your love"
-        Mood.ANGRY -> "Vent it here"
-        Mood.PEACEFUL -> "Capture the calm"
-        else -> "AI Suggestions"
-    }
-}
-
-private fun getMoodBasedSuggestions(mood: Mood): List<Pair<String, String>> {
-    return when (mood) {
-        Mood.HAPPY, Mood.EXCITED -> listOf(
-            "😊" to "Aaj kis baat se smile aayi?",
-            "🏆" to "Kis achievement pe proud feel hua?",
-            "🎉" to "Koi celebration worthy moment?",
-            "💪" to "Aaj kya accha kiya tune?"
-        )
-        Mood.SAD, Mood.ANXIOUS -> listOf(
-            "💭" to "Kya baat ne aaj disturb kiya?",
-            "🗣️" to "Kisi se baat karni hai?",
-            "😔" to "Kya dil mein hai jo bahar nahi aa raha?",
-            "🤗" to "Kya cheez comfort deti hai tujhe?"
-        )
-        Mood.ROMANTIC, Mood.GRATEFUL -> listOf(
-            "💕" to "Kisi special ke baare mein likho",
-            "💝" to "Aaj kis baat ke liye grateful ho?",
-            "😍" to "Kya cheez dil ko chu gayi aaj?",
-            "🌹" to "Pyaar ka koi moment share karo"
-        )
-        Mood.ANGRY -> listOf(
-            "😤" to "Kis baat pe gussa aaya?",
-            "🔥" to "Kya cheez frustrate kar rahi hai?",
-            "💢" to "Kisko bolna chahte ho jo nahi bol paaye?",
-            "🤯" to "Kya expectation break hui?"
-        )
-        Mood.PEACEFUL -> listOf(
-            "🧘" to "Aaj kya cheez peaceful lagi?",
-            "🌿" to "Kis moment mein sukoon mila?",
-            "☕" to "Kya simple cheez ne khush kiya?",
-            "🌅" to "Koi beautiful moment capture karo"
-        )
-        else -> listOf(
-            "💭" to "Aaj kya chal raha hai?",
-            "✨" to "Koi interesting baat hui?",
-            "📝" to "Random thoughts likho",
-            "🎯" to "Kal ke liye kya plan hai?"
-        )
-    }
-}
-
 @Composable
 private fun getMoodGradient(mood: Mood): Brush {
     return when (mood) {
@@ -666,84 +742,3 @@ private data class Orb(
     val speedY: Float = Random.nextFloat() * 0.5f + 0.5f,
     val phase: Double = Random.nextDouble() * Math.PI * 2
 )
-
-@Composable
-private fun RotatingSentencesView(sentence: String) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = GlassWhite.copy(alpha = 0.6f)),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "\"$sentence\"",
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                ),
-                color = DeepPurple,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
-
-@Composable
-private fun GreetingView(
-    userName: String,
-    greetingTime: Int,
-    timeString: String,
-    dateString: String,
-    onProfileClick: () -> Unit
-) {
-    val greeting = when (greetingTime) {
-        in 5..11 -> "Good Morning"
-        in 12..16 -> "Good Afternoon"
-        in 17..21 -> "Good Evening"
-        else -> "Good Night"
-    }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
-            Text(
-                text = "$greeting, $userName",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = CharcoalSlate
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = dateString,
-                style = MaterialTheme.typography.bodyMedium,
-                color = GreyText
-            )
-        }
-        
-        // Profile Icon
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(DeepPurple.copy(alpha = 0.1f))
-                .clickable(onClick = onProfileClick),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = userName.firstOrNull()?.toString() ?: "M",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = DeepPurple
-            )
-        }
-    }
-}
