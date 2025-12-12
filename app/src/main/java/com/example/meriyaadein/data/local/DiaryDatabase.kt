@@ -14,7 +14,13 @@ class MoodConverter {
     fun fromMood(mood: Mood): String = mood.name
     
     @androidx.room.TypeConverter
-    fun toMood(name: String): Mood = Mood.valueOf(name)
+    fun toMood(name: String): Mood {
+        return try {
+            Mood.valueOf(name)
+        } catch (e: IllegalArgumentException) {
+            Mood.NEUTRAL
+        }
+    }
 }
 
 /**

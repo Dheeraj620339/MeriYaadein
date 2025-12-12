@@ -251,7 +251,7 @@ fun MoodSelector(
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Mood.entries.forEach { mood ->
+            Mood.values().forEach { mood ->
                 MoodEmojiItem(
                     mood = mood,
                     isSelected = mood == selectedMood,
@@ -300,9 +300,9 @@ fun AiSuggestionCard(
     LaunchedEffect(Unit) {
         while (true) {
             kotlinx.coroutines.delay(50)
-            if (listState.value < listState.maxValue) {
+            if (listState.maxValue > 0 && listState.value < listState.maxValue) {
                 listState.animateScrollTo(listState.value + 2)
-            } else {
+            } else if (listState.maxValue > 0) {
                 listState.scrollTo(0)
             }
         }
