@@ -41,8 +41,10 @@ fun DiaryApp() {
     val viewModel: com.example.meriyaadein.viewmodel.DiaryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     
     // Routes where bottom nav should be visible
-    val bottomNavRoutes = listOf(Routes.HOME, Routes.HISTORY, Routes.FAVORITES, Routes.SETTINGS)
-    val showBottomNav = currentRoute in bottomNavRoutes || currentRoute == Routes.HOME // Ensure Home always shows it
+    // Routes where bottom nav should be visible
+    // Home has its own bottom nav now
+    val bottomNavRoutes = listOf(Routes.HISTORY, Routes.FAVORITES, Routes.SETTINGS)
+    val showBottomNav = currentRoute in bottomNavRoutes
     
     Scaffold(
         modifier = Modifier.fillMaxSize(),

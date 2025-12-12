@@ -89,8 +89,7 @@ fun HomeScreen(
                 onSettingsClick = onNavigateToSettings
             )
         },
-        containerColor = Color.Transparent,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+        containerColor = Color.Transparent
     ) { paddingValues ->
         Box(
             modifier = modifier

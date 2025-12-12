@@ -75,12 +75,10 @@ fun DiaryNavHost(
                 todayEntry = todayEntry,
                 recentEntries = entries, // Passing all entries for recent slider
                 onWriteClick = {
-                    // FAB action if needed, or mapped to save
-                    viewModel.saveDraft()
+                    navController.navigate(Routes.ADD_ENTRY)
                 },
                 onWriteWithPrompt = { prompt ->
-                    // Pre-fill prompt in draft
-                    viewModel.updateDraftContent(if (draftContent.isEmpty()) prompt else "$draftContent\n$prompt")
+                    navController.navigate(Routes.addEntryWithPrompt(prompt))
                 },
                 onEditClick = { entry ->
                     viewModel.loadEntryById(entry.id)
@@ -94,13 +92,14 @@ fun DiaryNavHost(
                 currentMood = currentMood,
                 moodSuggestions = moodSuggestions,
                 onProfileClick = {
-                    // Navigate to profile screen
                     navController.navigate(Routes.PROFILE)
                 },
                 userName = userName,
                 draftContent = draftContent,
                 onTitleChange = { viewModel.updateDraftTitle(it) },
-                onContentChange = { viewModel.updateDraftContent(it) }
+                onContentChange = { viewModel.updateDraftContent(it) },
+                onNavigateToHistory = { navController.navigate(Routes.HISTORY) },
+                onNavigateToSettings = { navController.navigate(Routes.SETTINGS) }
             )
         }
         
